@@ -89,7 +89,7 @@ object SettingsLibrary {
     var RefreshEveryTime by mutableDataSaverStateOf(
         dataSaverInterface = SettingsSaver,
         key = "settings_library_refresh_everytime",
-        initialValue = false
+        initialValue = true
     )
 
     /**
