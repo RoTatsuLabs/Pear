@@ -23,7 +23,10 @@ class YosRenderFactory(context: Context) : DefaultRenderersFactory(context) {
         eventListener: AudioRendererEventListener,
         out: ArrayList<Renderer>
     ) {
-        out.add(FfmpegAudioRenderer())
+        // "System" codec mode maps to EXTENSION_RENDERER_MODE_OFF, so only add FFmpeg otherwise.
+        if (extensionRendererMode != DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF) {
+            out.add(FfmpegAudioRenderer())
+        }
         super.buildAudioRenderers(
             context,
             extensionRendererMode,
