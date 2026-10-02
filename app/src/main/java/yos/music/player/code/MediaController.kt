@@ -52,6 +52,7 @@ import yos.music.player.code.MediaController.mediaControl
 import yos.music.player.code.MediaController.mediaSession
 import yos.music.player.code.MediaController.musicPlaying
 import yos.music.player.code.MediaController.onServiceRunning
+import yos.music.player.code.MediaController.onServiceStopped
 import yos.music.player.code.utils.lrc.YosLrcFactory
 import yos.music.player.code.utils.player.FadeExo
 import yos.music.player.code.utils.player.FadeExo.fadePause
@@ -85,8 +86,21 @@ object MediaController {
     @Stable
     var mediaSession: MediaSession? = null
 
+    // The loops started by onServiceRunning, kept so onServiceStopped can cancel them.
+    private var serviceHandler: Handler? = null
+    private var serviceRunnables: List<Runnable> = emptyList()
+
+    fun onServiceStopped() {
+        serviceRunnables.forEach { serviceHandler?.removeCallbacks(it) }
+        serviceRunnables = emptyList()
+        serviceHandler = null
+    }
+
     fun onServiceRunning() {
-        val handler by lazy { Handler(Looper.getMainLooper()) }
+        // A restarted service must not leave the previous loops running next to the new ones.
+        onServiceStopped()
+
+        val handler = Handler(Looper.getMainLooper())
         val lyricAPI by lazy { API() }
         var lastLyric = listOf<Pair<Float, String>>()
         val base64 = Tools.drawableToBase64(getDrawable(R.drawable.flamingo_icon_notification)!!)
@@ -183,10 +197,11 @@ object MediaController {
             }
         }
 
-        CoroutineScope(Dispatchers.IO).launch {
-            handler.post(checkHookStatusRunnable)
-            handler.post(updateLyricsRunnable)
-        }
+        serviceHandler = handler
+        serviceRunnables = listOf(checkHookStatusRunnable, updateLyricsRunnable)
+
+        handler.post(checkHookStatusRunnable)
+        handler.post(updateLyricsRunnable)
     }
 
 
@@ -519,7 +534,8 @@ class YosPlaybackService : MediaSessionService() {
                                 val audioInfo = AudioMetadataUtils.getQualityInfos(thisPath)
                                 if (samplingRate == 0) {
                                     samplingRate = audioInfo.second
-                                } else {
+                                }
+                                if (bitrate == 0) {
                                     bitrate = audioInfo.first
                                 }
                             }
@@ -734,6 +750,7 @@ class YosPlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        onServiceStopped()
         mediaSession?.run {
             player.release()
             release()
