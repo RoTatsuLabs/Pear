@@ -104,10 +104,11 @@ class YosBasicApplication : Application() {
                                 }
                             }*/
 
-                            if (playStatusData.music != null) {
+                            val restoredQueue = playListData.playingMusicList
+                            if (playStatusData.music != null && restoredQueue != null) {
                                 yos.music.player.code.MediaController.prepare(
                                     playStatusData.music,
-                                    playListData.playingMusicList!!,
+                                    restoredQueue,
                                     playStatusData.position,
                                     playStatusData.shuffleModeEnabled,
                                     playStatusData.repeatMode,
