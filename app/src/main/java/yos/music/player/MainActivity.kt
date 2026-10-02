@@ -1054,14 +1054,18 @@ class MainActivity : BaseActivity() {
         val requestPermissionLauncher = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
-            val isGranted = permissions.entries.all { it.value }
-            if (isGranted) {
+            // Scan as soon as audio access is granted. A denied notification or Bluetooth
+            // permission should not keep the library from loading.
+            if (MusicLibrary.hasAudioPermission(context)) {
                 // Load music list here
                 loadMusic(context, enforce = true)
-                sendBroadcast(Intent("yos.music.player.BLUETOOTH_STATUS_REFRESH"))
             } else {
                 // Set music list to empty if permission is denied
                 // mainMusicList.value = mutableListOf()
+            }
+
+            if (permissions.entries.all { it.value }) {
+                sendBroadcast(Intent("yos.music.player.BLUETOOTH_STATUS_REFRESH"))
             }
         }
 
