@@ -10,6 +10,7 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.google.gson.GsonBuilder
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonToken
 import com.google.gson.stream.JsonWriter
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
@@ -147,13 +148,23 @@ class ImmutableListTypeAdapter<T> : JsonSerializer<ImmutableList<T>>,
     }
 }*/
 
-class UriTypeAdapter : TypeAdapter<Uri>() {
+class UriTypeAdapter : TypeAdapter<Uri?>() {
     override fun write(out: JsonWriter, value: Uri?) {
-        out.value(value.toString())
+        if (value == null) {
+            out.nullValue()
+        } else {
+            out.value(value.toString())
+        }
     }
 
-    override fun read(`in`: JsonReader): Uri {
-        return Uri.parse(`in`.nextString())
+    override fun read(`in`: JsonReader): Uri? {
+        if (`in`.peek() == JsonToken.NULL) {
+            `in`.nextNull()
+            return null
+        }
+        val text = `in`.nextString()
+        // Older saves wrote a missing Uri as the text "null", so treat that as missing too.
+        return if (text == "null") null else Uri.parse(text)
     }
 }
 
