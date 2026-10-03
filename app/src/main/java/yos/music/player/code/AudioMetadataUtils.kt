@@ -24,6 +24,22 @@ object AudioMetadataUtils {
         }
     }
 
+    /**
+     * Reads the lyric file that sits next to the song. A TTML file wins over an LRC file
+     * because it can carry more. Returns null when neither exists.
+     */
+    fun loadLyricsFile(context: Context, songPath: String?): String? {
+        if (songPath == null) return null
+        val base = songPath.substringBeforeLast(".")
+        for (extension in listOf("ttml", "lrc")) {
+            val path = "$base.$extension"
+            if (!File(path).isFile) continue
+            println("歌词文件：$path")
+            loadLrcFile(context, path)?.let { return it }
+        }
+        return null
+    }
+
     fun getQualityInfos(filePath: String): Pair<Int, Int> {
         val songFile = File(filePath)
         var bitrate: Int
