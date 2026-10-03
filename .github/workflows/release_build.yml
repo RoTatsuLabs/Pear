@@ -1,0 +1,71 @@
+name: Release build
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the version from the tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${VERSION%%-*}"
+          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$((MAJOR * 10000 + MINOR * 100 + PATCH))" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check the changelog and pull out the notes
+        run: |
+          python3 .github/scripts/validate_changelog.py
+          python3 .github/scripts/validate_changelog.py --extract "${{ steps.version.outputs.name }}" > release_notes.md
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare the signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PEAR_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "PEAR_KEYSTORE_BASE64 is not set; a release has to be signed." >&2
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/pear.jks"
+          echo "PEAR_KEYSTORE_FILE=$RUNNER_TEMP/pear.jks" >> "$GITHUB_ENV"
+
+      - name: Build the release APK
+        env:
+          PEAR_KEYSTORE_PASSWORD: ${{ secrets.PEAR_KEYSTORE_PASSWORD }}
+          PEAR_KEY_ALIAS: ${{ secrets.PEAR_KEY_ALIAS }}
+          PEAR_KEY_PASSWORD: ${{ secrets.PEAR_KEY_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease --stacktrace \
+            -PpearVersionName="${{ steps.version.outputs.name }}" \
+            -PpearVersionCode="${{ steps.version.outputs.code }}"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FLAGS=""
+          if [ "${{ steps.version.outputs.prerelease }}" = "true" ]; then FLAGS="--prerelease"; fi
+          gh release create "$GITHUB_REF_NAME" $FLAGS \
+            --title "Pear ${{ steps.version.outputs.name }}" \
+            --notes-file release_notes.md \
+            app/build/outputs/apk/release/*
