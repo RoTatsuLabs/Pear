@@ -55,6 +55,7 @@ import yos.music.player.code.MediaController.musicPlaying
 import yos.music.player.code.MediaController.onServiceRunning
 import yos.music.player.code.MediaController.onServiceStopped
 import yos.music.player.code.utils.lrc.YosLyricsFactory
+import yos.music.player.code.utils.lrc.YosTransliterator
 import yos.music.player.code.utils.player.FadeExo
 import yos.music.player.code.utils.player.FadeExo.fadePause
 import yos.music.player.code.utils.player.FadeExo.fadePlay
@@ -410,6 +411,7 @@ class YosPlaybackService : MediaSessionService() {
     }*/
 
     private var saveJob: Job? = null
+    private var transliterationJob: Job? = null
 
     fun saveDataWithDelay() {
         saveJob?.cancel()
@@ -514,9 +516,24 @@ class YosPlaybackService : MediaSessionService() {
                         // TTML or LRC next to the song, whichever exists.
                         val lyricsText =
                             AudioMetadataUtils.loadLyricsFile(this@YosPlaybackService, thisPath)
-                        YosLyricsFactory.publish(
+                        val parsed =
                             YosLyricsFactory.parse(lyricsText, Locale.getDefault().language)
-                        )
+                        YosLyricsFactory.publish(parsed)
+
+                        // Automatic transliteration can take a moment, because the platform
+                        // transliterator loads its data on first use. It runs in the
+                        // background and is published when ready, if this song still plays.
+                        transliterationJob?.cancel()
+                        transliterationJob = CoroutineScope(Dispatchers.Default).launch {
+                            val filled = YosTransliterator.fill(parsed)
+                            if (filled !== parsed) {
+                                withContext(Dispatchers.Main) {
+                                    if (MediaViewModelObject.lyrics.value === parsed) {
+                                        YosLyricsFactory.publish(filled)
+                                    }
+                                }
+                            }
+                        }
 
                         if (thisPath != null) {
                             // MediaViewModelObject.isDolby.value = thisPath.endsWith(".m4a")
@@ -743,6 +760,7 @@ class YosPlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         onServiceStopped()
+        transliterationJob?.cancel()
         mediaSession?.run {
             player.release()
             release()
