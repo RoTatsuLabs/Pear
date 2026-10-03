@@ -46,6 +46,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Locale
 import yos.music.player.MainActivity
 import yos.music.player.R
 import yos.music.player.code.MediaController.mediaControl
@@ -53,7 +54,7 @@ import yos.music.player.code.MediaController.mediaSession
 import yos.music.player.code.MediaController.musicPlaying
 import yos.music.player.code.MediaController.onServiceRunning
 import yos.music.player.code.MediaController.onServiceStopped
-import yos.music.player.code.utils.lrc.YosLrcFactory
+import yos.music.player.code.utils.lrc.YosLyricsFactory
 import yos.music.player.code.utils.player.FadeExo
 import yos.music.player.code.utils.player.FadeExo.fadePause
 import yos.music.player.code.utils.player.FadeExo.fadePlay
@@ -488,11 +489,6 @@ class YosPlaybackService : MediaSessionService() {
 
                         if (tracks.isEmpty) return@runCatching
 
-                        val lrcEntries: MutableState<List<List<Pair<Float, String>>>> =
-                            MediaViewModelObject.lrcEntries
-                        var lrcContent: String? = null
-
-
                         val path = player.currentMediaItem?.uri
 
                         println("质量分析 内置实现获取")
@@ -515,16 +511,12 @@ class YosPlaybackService : MediaSessionService() {
 
                         val thisPath = path?.path
 
-                        val finalLrcContent = if (lrcContent == null) {
-                            val lrcPath = "${thisPath?.substringBeforeLast(".")}.lrc"
-                            println("获取歌词元数据失败，将读取：$lrcPath")
-                            AudioMetadataUtils.loadLrcFile(this@YosPlaybackService, lrcPath) ?: ""
-                        } else {
-                            lrcContent
-                        }
-
-                        val lrcFactory = YosLrcFactory()
-                        lrcEntries.value = lrcFactory.formatLrcEntries(finalLrcContent)
+                        // TTML or LRC next to the song, whichever exists.
+                        val lyricsText =
+                            AudioMetadataUtils.loadLyricsFile(this@YosPlaybackService, thisPath)
+                        YosLyricsFactory.publish(
+                            YosLyricsFactory.parse(lyricsText, Locale.getDefault().language)
+                        )
 
                         if (thisPath != null) {
                             // MediaViewModelObject.isDolby.value = thisPath.endsWith(".m4a")
@@ -763,4 +755,3 @@ class YosPlaybackService : MediaSessionService() {
         controllerInfo: MediaSession.ControllerInfo
     ): MediaSession? = mediaSession
 }
-
