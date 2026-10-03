@@ -252,12 +252,15 @@ private fun BaseTitleGrid(
 
     Box(Modifier.fillMaxSize()) {
         val hazeState = remember(title) { HazeState() }
+        // Recording the list for the blurred bar costs a layer on every frame, so only
+        // do it when the bar blur is actually switched on.
+        val barBlur = SettingsLibrary.BarBlurEffect
 
         LazyVerticalGrid(
             state = state,
             modifier = Modifier
                 .fillMaxSize()
-                .haze(hazeState)
+                .then(if (barBlur) Modifier.haze(hazeState) else Modifier)
                 .overScrollVertical(),
             flingBehavior = rememberOverscrollFlingBehavior { state },
             columns = GridCells.Fixed(columns()),
@@ -315,12 +318,15 @@ private fun BaseTitleList(
 
     Box(Modifier.fillMaxSize()) {
         val hazeState = remember(title) { HazeState() }
+        // Recording the list for the blurred bar costs a layer on every frame, so only
+        // do it when the bar blur is actually switched on.
+        val barBlur = SettingsLibrary.BarBlurEffect
 
         LazyColumn(
             state = state,
             modifier = Modifier
                 .fillMaxSize()
-                .haze(hazeState)
+                .then(if (barBlur) Modifier.haze(hazeState) else Modifier)
                 .overScrollVertical(),
             flingBehavior = rememberOverscrollFlingBehavior { state },
             contentPadding = PaddingValues(top = 54.dp)
