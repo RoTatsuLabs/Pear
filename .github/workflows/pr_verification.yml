@@ -17,6 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The wrapper script is stored without the executable bit in the repository.
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       - name: Check the changelog
         run: python3 .github/scripts/validate_changelog.py --require-unreleased
 
