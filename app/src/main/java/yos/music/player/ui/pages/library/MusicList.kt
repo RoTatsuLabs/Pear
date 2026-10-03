@@ -102,8 +102,6 @@ LaunchedEffect(Unit) {
             .padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        println("重组：歌曲列表 ${music.title}")
-
         ShadowImageWithCache(
             dataLambda = { music.thumb },
             contentDescription = null,
