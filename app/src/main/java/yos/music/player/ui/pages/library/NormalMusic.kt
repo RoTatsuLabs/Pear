@@ -239,7 +239,9 @@ fun NormalMusic(navController: NavController) {
 
                     itemsIndexed(
                         list.value,
-                        key = { _, music -> music }
+                        // A song's media ID is a short, stable string. Keying on the whole
+                        // song entry hashed and compared every field for each visible row.
+                        key = { _, music -> music.mediaId ?: music.uri.toString() }
                     ) { index, music ->
                         MusicList(
                             music
@@ -276,28 +278,37 @@ fun NormalMusic(navController: NavController) {
     }
 }
 
-private fun List<YosMediaItem>.sortX() =
-    this.sortedBy { song ->
-        when (SongSort) {
-            SettingsLibrary.SongSortEnum.MUSIC_TITLE.ordinal -> Pinyin.toPinyin(
-                (song.title ?: defaultTitle)[0]
-            )
-
-            SettingsLibrary.SongSortEnum.MUSIC_DURATION.ordinal -> song.duration
-            SettingsLibrary.SongSortEnum.ARTIST_NAME.ordinal -> Pinyin.toPinyin(
-                (song.artistsList ?: defaultArtists).first()[0]
-            )
-
-            SettingsLibrary.SongSortEnum.MODIFIED_DATE.ordinal -> song.modifiedDate ?: 0
-            else -> Pinyin.toPinyin((song.title ?: defaultTitle)[0])
-        }.toString()
-    }.let {
-        if (EnableDescending) {
-            it.reversed()
-        } else {
-            it
+// Each sort key (a Pinyin lookup plus a string) is worked out once per song here.
+// sortedBy would call the selector again on every comparison, so a few thousand
+// songs meant hundreds of thousands of lookups per sort.
+private fun List<YosMediaItem>.sortX(): List<YosMediaItem> {
+    val sortMode = SongSort
+    return this.map { song -> song to song.sortKey(sortMode) }
+        .sortedBy { it.second }
+        .map { it.first }
+        .let {
+            if (EnableDescending) {
+                it.reversed()
+            } else {
+                it
+            }
         }
-    }
+}
+
+private fun YosMediaItem.sortKey(sortMode: Int): String =
+    when (sortMode) {
+        SettingsLibrary.SongSortEnum.MUSIC_TITLE.ordinal -> Pinyin.toPinyin(
+            (title ?: defaultTitle)[0]
+        )
+
+        SettingsLibrary.SongSortEnum.MUSIC_DURATION.ordinal -> duration
+        SettingsLibrary.SongSortEnum.ARTIST_NAME.ordinal -> Pinyin.toPinyin(
+            (artistsList ?: defaultArtists).first()[0]
+        )
+
+        SettingsLibrary.SongSortEnum.MODIFIED_DATE.ordinal -> modifiedDate ?: 0
+        else -> Pinyin.toPinyin((title ?: defaultTitle)[0])
+    }.toString()
 
 @Composable
 fun FloatingMenu(
