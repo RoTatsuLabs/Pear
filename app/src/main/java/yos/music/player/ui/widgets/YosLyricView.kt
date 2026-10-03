@@ -65,8 +65,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -75,12 +78,15 @@ import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -95,6 +101,8 @@ import androidx.compose.ui.util.fastForEachIndexed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import yos.music.player.code.utils.lrc.YosLyricCredit
+import yos.music.player.code.utils.lrc.YosLyricTiming
 import yos.music.player.code.utils.lrc.YosMediaEvent
 import yos.music.player.code.utils.lrc.YosUIConfig
 import yos.music.player.code.utils.others.Vibrator
@@ -138,6 +146,13 @@ fun YosLyricView(
     val otherSideForLines = MediaViewModelObject.otherSideForLines
 
     val lrcEntries = lrcEntriesLambda()
+
+    // Transliterations and credits belong to the entries they were published with. While a
+    // new song is being published the two can differ for a moment, so they are only used
+    // when they are the same list.
+    val lyricsData = MediaViewModelObject.lyrics.value
+    val lyricsMatch = lyricsData.entries === lrcEntries
+    val credits = if (lyricsMatch) lyricsData.credits else emptyList()
 
     //val thisLyricLines = MediaViewModelObject.mainLyricLines
     if (lrcEntries.isEmpty() || otherSideForLines.isEmpty() /*|| thisLyricLines.isEmpty()*/) {
@@ -429,6 +444,11 @@ fun YosLyricView(
                                 mainLyric = lines.dropLast(1),
                                 translation,
                                 translationLambda(),
+                                transliteration = if (lyricsMatch) {
+                                    lyricsData.transliterations.getOrNull(index)
+                                } else {
+                                    null
+                                },
                                 //mainTextSize = uiConfig.mainTextSize,
                                 subTextSize = uiConfig.subTextSize,
                                 blur = { blur.value },
@@ -548,6 +568,13 @@ fun YosLyricView(
                     }
 
 
+                }
+                // The credits sit below the last line. They are not part of the timed lines,
+                // so they take no part in the highlight or the scrolling.
+                if (credits.isNotEmpty()) {
+                    item("yos_credits") {
+                        LyricCredits(credits, mainTextBasicColor)
+                    }
                 }
                 blankSpacer()
                 item("extra_blank") {
@@ -861,6 +888,7 @@ fun LazyItemScope.LyricItem(
     mainLyric: List<Pair<Float, String>>,
     translation: String?,
     showTranslation: Boolean,
+    transliteration: List<String>? = null,
     //mainTextSize: Int,
     subTextSize: Int,
     blur: () -> Float,
@@ -891,6 +919,29 @@ fun LazyItemScope.LyricItem(
             mainLyric.all { it.first == mainLyric.firstOrNull()?.first }
         )
 
+    }
+
+    // One transliteration per segment of the line, or null when the line has none.
+    val romanLine = remember(transliteration) {
+        transliteration?.takeIf { list -> list.any { it.isNotBlank() } }
+    }
+    // A line with word timing draws its transliteration above each word, so its lines get
+    // extra height for it. A line without word timing shows it as a text above the line.
+    val romanPerWord = romanLine != null && !isNotOneByOne.value
+    val lineStyle = remember(otherSide, romanPerWord) {
+        val base = if (otherSide) MainTextStyle.copy(textAlign = TextAlign.End) else MainTextStyle
+        if (romanPerWord) {
+            base.copy(
+                lineHeight = base.lineHeight + TransliterationBand,
+                // the extra height goes above the text, where the transliteration is drawn
+                lineHeightStyle = LineHeightStyle(
+                    alignment = LineHeightStyle.Alignment.Bottom,
+                    trim = LineHeightStyle.Trim.None
+                )
+            )
+        } else {
+            base
+        }
     }
 
     val liveTime = remember(mainLyric) { mutableIntStateOf(liveTimeLambda()) }
@@ -1123,6 +1174,17 @@ fun LazyItemScope.LyricItem(
                                         }
                                     }
 
+                                    // 0 while the line is the current one, 1 once it is over and has
+                                    // faded from white to grey. A line that is first drawn after it
+                                    // is over starts at 1, so only a line that was just sung fades.
+                                    val pastFade = animateFloatAsState(
+                                        targetValue = if (isCurrentLambda()) 0f else 1f,
+                                        animationSpec = tween(
+                                            durationMillis = 600,
+                                            easing = yosEasing
+                                        )
+                                    )
+
                                     val showHighLight = remember(mainLyric) {
                                         derivedStateOf {
                                             if (isNotOneByOne.value) {
@@ -1133,9 +1195,31 @@ fun LazyItemScope.LyricItem(
                                         }
                                     }
 
+                                    if (romanLine != null && isNotOneByOne.value) {
+                                        // a line without word timing: its transliteration above it
+                                        Text(
+                                            text = romanLine.joinToString(" ") { it.trim() }
+                                                .trim(),
+                                            fontSize = TransliterationStyle.fontSize,
+                                            fontWeight = TransliterationStyle.fontWeight,
+                                            letterSpacing = TransliterationStyle.letterSpacing,
+                                            lineHeight = TransliterationStyle.lineHeight,
+                                            color = focusedColor,
+                                            textAlign = textAlign,
+                                            modifier = Modifier
+                                                .graphicsLayer {
+                                                    this.alpha = thisAlpha.value
+                                                    compositingStrategy =
+                                                        CompositingStrategy.ModulateAlpha
+                                                }
+                                                .then(otherSidePadding.value)
+                                                .padding(top = 4.dp)
+                                        )
+                                    }
+
                                     Line(
                                         lines = mainLyric,
-                                        style = if (otherSide) MainTextStyle.copy(textAlign = TextAlign.End) else MainTextStyle,
+                                        style = lineStyle,
                                         measurer = measurer,
                                         modifier = Modifier
                                             .graphicsLayer {
@@ -1166,164 +1250,108 @@ fun LazyItemScope.LyricItem(
                                             }
                                         }
 
-                                        if (!isCurrentLambda()) {
-                                            // 是逐字 但不是当前行
-                                            // 是否已播放完？
-                                            if (showHighLight.value) {
-                                                // 高亮
-                                                println("高亮：$mainLyric")
-                                                return@Line onDrawWithContent {
-                                                    drawText(
-                                                        textLayoutResult = measureResult,
-                                                        color = focusedColor,
-                                                        topLeft = Offset(0F, -4F)
-                                                    )
-                                                }
-                                            } else {
-                                                // 不高亮
+                                        // 以下为逐字处理
+
+                                        // The transliteration above each word, laid out once for the line.
+                                        val romans = if (romanPerWord && romanLine != null) {
+                                            layoutTransliteration(
+                                                mainLyric = mainLyric,
+                                                transliteration = romanLine,
+                                                measureResult = measureResult,
+                                                measurer = measurer
+                                            )
+                                        } else {
+                                            emptyList()
+                                        }
+
+                                        val isCurrent = isCurrentLambda()
+                                        // The fade only counts once the line is over. A line that
+                                        // becomes current again is drawn at full strength at once.
+                                        val fade = if (isCurrent) 0f else pastFade.value
+
+                                        if (!isCurrent) {
+                                            if (!showHighLight.value) {
+                                                // 是逐字 但不是当前行，且还没唱到：灰色
                                                 return@Line onDrawWithContent {
                                                     drawText(
                                                         textLayoutResult = measureResult,
                                                         color = unfocusedColor
                                                     )
+                                                    drawTransliterationFlat(romans, unfocusedColor)
                                                 }
                                             }
+                                            if (fade >= 1f) {
+                                                // 已唱完，且已经从白色淡回灰色
+                                                return@Line onDrawWithContent {
+                                                    drawText(
+                                                        textLayoutResult = measureResult,
+                                                        color = unfocusedColor,
+                                                        topLeft = Offset(0F, -4F)
+                                                    )
+                                                    drawTransliterationFlat(romans, unfocusedColor)
+                                                }
+                                            }
+                                            // Otherwise the line was just sung. It goes through the
+                                            // word drawing below once more while it fades to grey, so
+                                            // its last glow can fade out instead of being cut.
                                         }
 
-                                        // 以下为逐字处理
-
-                                        var sum = 0
-                                        var lastTime = 0f
-
+                                        // Every word is drawn character by character. A character is
+                                        // timed as an even share of its word.
+                                        val timeline = YosLyricTiming.timeline(mainLyric)
+                                        val totalChars = mainLyric.sumOf { it.second.length }
                                         val wordsToDraw = arrayListOf<DrawWord>()
+                                        var sum = 0
 
-                                        var averageTime = 0f
+                                        // White, or the grey it fades to once the line is over.
+                                        val finishedColor = lerp(focusedColor, unfocusedColor, fade)
 
-                                        lastTime = mainLyric.first().first
+                                        timeline.fastForEach { word ->
+                                            val thisWord = word.text
 
-                                        mainLyric.fastForEachIndexed { wordIndex, word ->
-
-                                            // 旧的逐字处理逻辑
-                                            /*val process = processWords(word.second)
-
-                                    process.fastForEach { word ->
-
-                                        // 非逐字转移到上面处理
-                                        *//*if (isNotOneByOne.value) {
-                                                word.split("").fastForEach { charWord ->
-                                                    wordsToDraw += DrawWord(
-                                                        time = word.first,
-                                                        word = charWord,
-                                                        layout = measurer.measure(
-                                                            text = charWord,
-                                                            style = MainTextStyle,
-                                                            constraints = measureResult.layoutInput.constraints,
-                                                            layoutDirection = if (viewAlign.value == Alignment.End) LayoutDirection.Rtl else LayoutDirection.Ltr
-                                                        ),
-                                                        topLeft = measureResult.getBoundingBox(sum.coerceAtMost(
-                                                            mainLyric.sumOf { it.second.length } - 1).coerceAtLeast(0)).topLeft,
-                                                        brush = { _, _ ->
-                                                               focusedSolidBrush
-                                                        }
-                                                    ).also {
-                                                        sum += charWord.length
-                                                    }
-                                                }
-
-                                                return@fastForEach
-                                            }*//*
-                                        }*/
-
-                                            //println(word.second + "：" + sum.coerceAtMost(mainLyric.sumOf { it.second.length } - 1).coerceAtLeast(0) + "，共 "+ mainLyric.sumOf { it.second.length })
-
-                                            // 新逻辑
-
-                                            val thisWord = word.second
-
-                                            if (thisWord.isEmpty()) {
-                                                return@fastForEachIndexed
-                                            }
-
-                                            averageTime = (word.first - lastTime) / thisWord.length
-
-                                            val thisWordGroupLastTime = if (wordIndex - 1 < 0) {
-                                                mainLyric.first().first
-                                            } else {
-                                                mainLyric[(wordIndex - 1)].first
-                                            }
-                                            val groupPercent =
-                                                if ((word.first - thisWordGroupLastTime) == 0f) {
-                                                    0f
-                                                } else {
-                                                    ((liveTime.intValue - thisWordGroupLastTime).coerceAtLeast(
-                                                        0f
-                                                    ) / (word.first - thisWordGroupLastTime)).coerceIn(
-                                                        0f,
-                                                        1f
-                                                    )
-                                                }
-                                            val easedPercent = easing.transform(groupPercent.coerceIn(
-                                                0f,
-                                                1f
-                                            ))
+                                            val groupPercent = YosLyricTiming.progress(
+                                                liveTime.intValue.toFloat(),
+                                                word.start,
+                                                word.end
+                                            )
+                                            val easedPercent = easing.transform(groupPercent)
                                             val topLeftWeight = 4 * easedPercent
 
-                                            thisWord.forEach { char ->
-
-                                                //println("$char：$lastTime to ${lastTime + averageTime}")
-
+                                            thisWord.forEachIndexed { charIndex, char ->
                                                 val charWord = char.toString()
 
                                                 val layout = measurer.measure(
                                                     text = charWord,
-                                                    style = if (otherSide) MainTextStyle.copy(
-                                                        textAlign = TextAlign.End
-                                                    ) else MainTextStyle,
+                                                    style = lineStyle,
                                                     constraints = measureResult.layoutInput.constraints
                                                 )
 
-                                                val thisWordLastTime = lastTime
-                                                val thisWordAverageTime = averageTime
+                                                val charStart = word.charStart(charIndex)
+                                                val charEnd = word.charEnd(charIndex)
+                                                val wordEnd = word.end
 
                                                 wordsToDraw += DrawWord(
-                                                    time = lastTime + averageTime,
+                                                    time = charEnd,
                                                     word = charWord,
                                                     layout = layout,
-                                                    topLeft = measureResult.getBoundingBox(sum.coerceAtMost(
-                                                        mainLyric.sumOf { it.second.length } - 1)
-                                                        .coerceAtLeast(0)).topLeft.minus(
-                                                            Offset(
-                                                                0F,
-                                                                topLeftWeight
-                                                            )
-                                                            ),
+                                                    topLeft = measureResult.getBoundingBox(
+                                                        sum.coerceAtMost(totalChars - 1)
+                                                            .coerceAtLeast(0)
+                                                    ).topLeft.minus(
+                                                        Offset(
+                                                            0F,
+                                                            topLeftWeight
+                                                        )
+                                                    ),
                                                     brush = { px, percent ->
                                                         if (thisWord == " ") {
                                                             return@DrawWord unfocusedSolidBrush
                                                         }
-
-                                                        val beforeColor = if (percent <= -0.5f) {
+                                                        sweepBrush(
+                                                            percent,
+                                                            px,
+                                                            finishedColor,
                                                             unfocusedColor
-                                                        } else {
-                                                            focusedColor
-                                                        }
-
-                                                        val afterColor = if (percent >= 1f) {
-                                                            focusedColor
-                                                        } else {
-                                                            unfocusedColor
-                                                        }
-                                                        Brush.horizontalGradient(
-                                                            0f to beforeColor,
-                                                            (percent - px).coerceIn(
-                                                                0f,
-                                                                1f
-                                                            ) to beforeColor,
-                                                            (percent + px).coerceIn(
-                                                                0f,
-                                                                1f
-                                                            ) to afterColor/*,
-                                                            1f to afterColor*/
                                                         )
                                                     },
                                                     percent = {
@@ -1331,27 +1359,60 @@ fun LazyItemScope.LyricItem(
                                                             return@DrawWord 0f
                                                         }
 
-                                                        ((liveTime.intValue - thisWordLastTime) / thisWordAverageTime)
-
+                                                        YosLyricTiming.rawProgress(
+                                                            liveTime.intValue.toFloat(),
+                                                            charStart,
+                                                            charEnd
+                                                        )
+                                                    },
+                                                    glow = {
+                                                        if (thisWord == " ") {
+                                                            0f
+                                                        } else {
+                                                            YosLyricTiming.glow(
+                                                                liveTime.intValue.toFloat(),
+                                                                charStart,
+                                                                charEnd,
+                                                                wordEnd
+                                                            )
+                                                        }
                                                     }
                                                 ).also {
                                                     sum += charWord.length
-                                                    lastTime += averageTime
                                                 }
                                             }
                                         }
 
                                         onDrawBehind {
+                                            val glowRadius = GlowRadius.toPx()
                                             wordsToDraw.fastForEach { l ->
+                                                // The glow follows the highlight: it grows with it,
+                                                // stays while the word is held and fades afterwards.
+                                                val glow = l.glow() * (1f - fade)
                                                 drawText(
                                                     textLayoutResult = l.layout,
                                                     topLeft = l.topLeft,
                                                     brush = l.brush(
                                                         0.3f,
                                                         l.percent()
-                                                    )
+                                                    ),
+                                                    shadow = if (glow > 0.01f) {
+                                                        Shadow(
+                                                            color = focusedColor.copy(alpha = GlowAlpha * glow),
+                                                            offset = Offset.Zero,
+                                                            blurRadius = glowRadius
+                                                        )
+                                                    } else {
+                                                        null
+                                                    }
                                                 )
                                             }
+                                            drawTransliterationProgress(
+                                                items = romans,
+                                                time = liveTime.intValue.toFloat(),
+                                                finishedColor = finishedColor,
+                                                unfocusedColor = unfocusedColor
+                                            )
                                         }
                                     }
                                 }
@@ -1529,6 +1590,162 @@ val MainTextStyle = TextStyle(
     )
 )*/
 
+// ---- transliteration and glow -----------------------------------------------------------
+
+/** Height added above every line that carries a transliteration. */
+private val TransliterationBand = 17.sp
+
+private object TransliterationStyle {
+    val fontSize = 14.sp
+    val fontWeight = FontWeight.Bold
+    val letterSpacing = 0.1.sp
+    val lineHeight = 17.sp
+}
+
+private val TransliterationTextStyle = TextStyle(
+    fontSize = TransliterationStyle.fontSize,
+    fontWeight = TransliterationStyle.fontWeight,
+    letterSpacing = TransliterationStyle.letterSpacing,
+    lineHeight = TransliterationStyle.lineHeight
+)
+
+/** Blur radius and peak opacity of the glow behind the word being sung. */
+private val GlowRadius = 6.dp
+private const val GlowAlpha = 0.45f
+
+/**
+ * A left to right sweep over a piece of text. Everything before [percent] is [finished],
+ * everything after is [unfocused], and [softness] blends the two around the sweep point.
+ */
+private fun sweepBrush(
+    percent: Float,
+    softness: Float,
+    finished: Color,
+    unfocused: Color
+): Brush {
+    val beforeColor = if (percent <= -0.5f) unfocused else finished
+    val afterColor = if (percent >= 1f) finished else unfocused
+    return Brush.horizontalGradient(
+        0f to beforeColor,
+        (percent - softness).coerceIn(0f, 1f) to beforeColor,
+        (percent + softness).coerceIn(0f, 1f) to afterColor
+    )
+}
+
+/** The transliteration of one word, with the place it is drawn at and when its word is sung. */
+private class RomanItem(
+    val layout: TextLayoutResult,
+    val topLeft: Offset,
+    val start: Float,
+    val end: Float
+)
+
+/**
+ * Places the transliteration of each word centered above the word, in the extra height the
+ * line style leaves at the top of every line. When two of them would touch, the later one
+ * moves right so they stay readable.
+ */
+private fun layoutTransliteration(
+    mainLyric: List<Pair<Float, String>>,
+    transliteration: List<String>,
+    measureResult: TextLayoutResult,
+    measurer: TextMeasurer
+): List<RomanItem> {
+    val items = ArrayList<RomanItem>()
+    val text = measureResult.layoutInput.text.text
+    if (text.isEmpty()) return items
+
+    val rightEdgeOfLine = HashMap<Int, Float>()
+    var offset = 0
+    YosLyricTiming.timeline(mainLyric).forEach { word ->
+        val first = offset
+        offset += word.text.length
+
+        val roman = transliteration.getOrNull(word.pairIndex - 1)?.trim().orEmpty()
+        if (roman.isEmpty() || word.text.isBlank()) return@forEach
+
+        // the characters of the word without the spaces around it
+        var from = first.coerceIn(0, text.length - 1)
+        var to = (first + word.text.length - 1).coerceIn(0, text.length - 1)
+        while (from < to && text[from].isWhitespace()) from++
+        while (to > from && text[to].isWhitespace()) to--
+
+        // a word that wraps onto a second line is centered over its part on the first line
+        val line = measureResult.getLineForOffset(from)
+        val lastOnLine = (measureResult.getLineEnd(line, visibleEnd = true) - 1).coerceAtLeast(from)
+        val startBox = measureResult.getBoundingBox(from)
+        val endBox = measureResult.getBoundingBox(minOf(to, lastOnLine))
+
+        val layout = measurer.measure(
+            text = roman,
+            style = TransliterationTextStyle,
+            softWrap = false,
+            maxLines = 1
+        )
+        val wordWidth = endBox.right - startBox.left
+        var x = startBox.left + (wordWidth - layout.size.width) / 2f
+        x = x.coerceIn(0f, (measureResult.size.width - layout.size.width).toFloat().coerceAtLeast(0f))
+        rightEdgeOfLine[line]?.let { x = maxOf(x, it + 8f) }
+        rightEdgeOfLine[line] = x + layout.size.width
+
+        items += RomanItem(layout, Offset(x, startBox.top), word.start, word.end)
+    }
+    return items
+}
+
+/** Draws the transliteration in one color. */
+private fun DrawScope.drawTransliterationFlat(items: List<RomanItem>, color: Color) {
+    items.fastForEach { item ->
+        drawText(textLayoutResult = item.layout, color = color, topLeft = item.topLeft)
+    }
+}
+
+/** Draws the transliteration with the same sweep as the word it belongs to. */
+private fun DrawScope.drawTransliterationProgress(
+    items: List<RomanItem>,
+    time: Float,
+    finishedColor: Color,
+    unfocusedColor: Color
+) {
+    items.fastForEach { item ->
+        val percent = YosLyricTiming.rawProgress(time, item.start, item.end)
+        drawText(
+            textLayoutResult = item.layout,
+            topLeft = item.topLeft,
+            brush = sweepBrush(percent, 0.3f, finishedColor, unfocusedColor)
+        )
+    }
+}
+
+/**
+ * The credits of the lyrics, such as the songwriters, below the last line. The values are
+ * shown as the source wrote them, only the heading in front of each one is added.
+ */
+@Composable
+private fun LyricCredits(credits: List<YosLyricCredit>, textColor: Color) {
+    val text = remember(credits) {
+        buildAnnotatedString {
+            credits.forEachIndexed { index, credit ->
+                if (index > 0) append("\n\n")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append(credit.label)
+                    append(": ")
+                }
+                append(credit.values.joinToString(", "))
+            }
+        }
+    }
+    Text(
+        text = text,
+        fontSize = 20.sp,
+        lineHeight = 28.sp,
+        color = textColor.copy(alpha = 0.6f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 29.dp, end = 29.dp, top = 28.dp, bottom = 8.dp)
+    )
+}
+
 @Stable
 private data class DrawWord(
     val time: Float,
@@ -1536,7 +1753,8 @@ private data class DrawWord(
     val layout: TextLayoutResult,
     val topLeft: Offset,
     val brush: (px: Float, percent: Float) -> Brush,
-    val percent: () -> Float
+    val percent: () -> Float,
+    val glow: () -> Float
 )
 
 /*
