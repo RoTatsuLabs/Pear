@@ -119,6 +119,13 @@ object MusicLibrary {
     private const val playListKey = "yos_play_list_v1"
     private const val playStatusKey = "yos_player_play_status"
 
+    // Built once and reused. Creating a Gson instance and looking the MMKV store up
+    // on every save or load is wasted work, since neither changes at runtime.
+    private val gson by lazy {
+        GsonBuilder().registerTypeAdapter(Uri::class.java, UriTypeAdapter()).create()
+    }
+    private val mmkv: MMKV by lazy { MMKV.mmkvWithID(mmkvID) }
+
     var hideSongs by mutableDataSaverListStateOf(
         dataSaverInterface = SongListSaver,
         key = "hide_songs",
@@ -154,11 +161,49 @@ object MusicLibrary {
         dataSaverInterface = SongListSaver, key = "songs", initialValue = listOf<YosMediaItem>()
     )
 
+    // The visible song list only changes when one of its four inputs is replaced, and
+    // each of them is swapped out as a whole list. The last result is kept together
+    // with the exact lists it was built from, so reads in between cost nothing.
+    private class SongsCache(
+        val saved: List<YosMediaItem>,
+        val hidden: List<YosMediaItem>,
+        val folders: List<Folder>,
+        val hiddenFolders: List<YosStringWrapper>,
+        val result: List<YosMediaItem>
+    )
+
+    @Volatile
+    private var songsCache: SongsCache? = null
+
     val songs: List<YosMediaItem>
-        get() = songSaver
-            .filter { it !in hideSongs && it.uri !in folders.filter { thisFolders -> thisFolders.path in hideFolders }
-                .flatMap { thisFlatMap -> thisFlatMap.songs }
-                .map { thisMap -> thisMap.uri } }
+        get() {
+            // Read every input on each call so Compose still tracks them as dependencies.
+            val saved = songSaver
+            val hidden = hideSongs
+            val allFolders = folders
+            val hiddenFolders = hideFoldersSaver
+
+            songsCache?.let {
+                if (it.saved === saved && it.hidden === hidden &&
+                    it.folders === allFolders && it.hiddenFolders === hiddenFolders
+                ) {
+                    return it.result
+                }
+            }
+
+            val hiddenSongSet = hidden.toHashSet()
+            val hiddenFolderPaths = hiddenFolders.mapTo(HashSet()) { it.value }
+            val hiddenUris = HashSet<Uri?>()
+            allFolders.forEach { folder ->
+                if (folder.path in hiddenFolderPaths) {
+                    folder.songs.forEach { hiddenUris.add(it.uri) }
+                }
+            }
+
+            val result = saved.filter { it !in hiddenSongSet && it.uri !in hiddenUris }
+            songsCache = SongsCache(saved, hidden, allFolders, hiddenFolders, result)
+            return result
+        }
 
     val artists
         get() = songs/*.distinctBy { it.artist }.map { it.artist }*/.flatMap {
@@ -183,13 +228,10 @@ object MusicLibrary {
 
     fun updatePlayList(playListV1: PlayListV1) {
         updateData(playListKey, playListV1)
-        println("updatePlayList $playListV1")
     }
 
     fun loadPlayList(): PlayListV1 {
-        val loadedData = loadData(playListKey) ?: PlayListV1(null, null)
-        println("loadPlayList $loadedData")
-        return loadedData
+        return loadData(playListKey) ?: PlayListV1(null, null)
     }
 
     fun MediaItem.toYosMediaItem(): YosMediaItem {
@@ -273,15 +315,11 @@ object MusicLibrary {
     }
 
     private inline fun <reified T> updateData(key: String, value: T) {
-        val gson = GsonBuilder().registerTypeAdapter(Uri::class.java, UriTypeAdapter()).create()
-        val mmkv = MMKV.mmkvWithID(mmkvID)
         val json = gson.toJson(value)
         mmkv.encode(key, json)
     }
 
     private inline fun <reified T> loadData(key: String): T? {
-        val gson = GsonBuilder().registerTypeAdapter(Uri::class.java, UriTypeAdapter()).create()
-        val mmkv = MMKV.mmkvWithID(mmkvID)
         val json = mmkv.decodeString(key)
         return json?.let {
             val type = object : TypeToken<T>() {}.type
@@ -444,11 +482,6 @@ object MusicLibrary {
             }.filter { folder ->
                 folder !in hideFolders
             }*/
-
-            println("基本扫描: ${result.songList}")
-            println("文件夹: $folders")
-            println("SongSaver: $songSaver")
-            println("Songs: $songs")
 
             println("prepare 媒体库扫描完毕，尝试保存播放列表")
             println("prepare 媒体库扫描完毕，保存播放列表")

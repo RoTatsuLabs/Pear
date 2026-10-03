@@ -6,6 +6,8 @@ All notable changes to Pear are listed here, newest first.
 
 ### Changes
 * Refresh the library on every launch by default. The setting can still turn it off.
+* Speed up the song list by building the visible song list once instead of on every read.
+* Stop printing the whole library and the saved queue to the log after each scan and save.
 
 ### Fixes
 * Stop the media scan from wiping the saved playlist when audio permission is denied.
