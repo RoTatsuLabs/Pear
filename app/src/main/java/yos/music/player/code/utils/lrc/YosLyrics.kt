@@ -33,7 +33,9 @@ data class YosLyrics(
     val entries: List<List<Pair<Float, String>>>,
     val otherSide: List<Boolean>,
     val transliterations: List<List<String>?>,
-    val credits: List<YosLyricCredit>
+    val credits: List<YosLyricCredit>,
+    /** Language of the lyrics when the source says so, e.g. "ja" or "zh-Hans". */
+    val language: String? = null
 ) {
     val isEmpty: Boolean get() = entries.isEmpty()
 

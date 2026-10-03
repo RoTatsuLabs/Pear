@@ -12,6 +12,9 @@ object YosLyricsFactory {
      * Reads lyric text in either format. Returns [YosLyrics.EMPTY] for blank text and for a
      * TTML file that cannot be read.
      *
+     * Automatic transliteration is not part of this call, [YosTransliterator.fill] adds it.
+     * It can take a moment, so the caller decides when and on which thread it runs.
+     *
      * @param preferredLanguage language code used to pick a TTML translation, e.g. "en"
      */
     fun parse(content: String?, preferredLanguage: String? = null): YosLyrics {
@@ -28,10 +31,16 @@ object YosLyricsFactory {
         return start.startsWith("<") && TTML_ROOT.containsMatchIn(start.take(2048))
     }
 
-    /** Hands the lyrics of the playing song to the lyric view and the status bar lyric. */
+    /**
+     * Hands the lyrics of the playing song to the lyric view and the status bar lyric.
+     * Publishing the same lines again with a transliteration added only changes
+     * [MediaViewModelObject.lyrics], so the list does not redraw.
+     */
     fun publish(lyrics: YosLyrics) {
         MediaViewModelObject.lyrics.value = lyrics
-        publishOtherSide(lyrics.otherSide)
+        if (MediaViewModelObject.otherSideForLines.toList() != lyrics.otherSide) {
+            publishOtherSide(lyrics.otherSide)
+        }
         MediaViewModelObject.lrcEntries.value = lyrics.entries
     }
 
