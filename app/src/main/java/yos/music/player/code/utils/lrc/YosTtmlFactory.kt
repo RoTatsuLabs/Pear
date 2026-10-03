@@ -151,7 +151,8 @@ class YosTtmlFactory(private val preferredLanguage: String? = null) {
             entries = entries,
             otherSide = sides,
             transliterations = roman,
-            credits = credits
+            credits = credits,
+            language = root.attrs["lang"]?.ifBlank { null }
         )
     }
 
