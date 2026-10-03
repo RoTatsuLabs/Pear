@@ -1,62 +1,50 @@
 package yos.music.player.code.utils.lrc
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.ui.util.fastForEachIndexed
-import androidx.compose.ui.util.fastJoinToString
-import yos.music.player.data.objects.MediaViewModelObject
-
 /**
  * Lrc 歌词文本处理
+ *
+ * Reads LRC text, including the word timed variant and duets written as "Singer:" lines.
+ * [parse] has no side effects. [formatLrcEntries] keeps the old entry point for callers
+ * that only want the line list and publishes the duet sides the way it always did.
  */
 class YosLrcFactory(private val formatText: Boolean = true) {
+
+    /** Parses [lrcText] without touching any shared state. */
+    fun parse(lrcText: String): YosLyrics {
+        val entries = readEntries(lrcText)
+        if (entries.isEmpty()) return YosLyrics.EMPTY
+        val (lines, otherSide) = processOtherSide(entries)
+        val kept = lines.indices.filter { lines[it].isNotEmpty() }
+        return YosLyrics(
+            format = YosLyricFormat.LRC,
+            entries = kept.map { lines[it] },
+            otherSide = kept.map { otherSide[it] },
+            transliterations = kept.map { null },
+            credits = emptyList()
+        )
+    }
+
     /**
      * Lrc 歌词文本处理方法
      * @param lrcText Lrc 格式的文本
      */
-    /*fun formatLrcEntries(lrcText: String): List<Pair<Float, String>> {
-        val lrcLines = lrcText.lines()
-        return lrcLines.mapNotNull { line ->
-            val timeIndex = line.indexOf("]")
-            if (timeIndex == -1) return@mapNotNull null
-            val timeText = line.substring(1, timeIndex)
-            val timeParts = timeText.split(":")
-            if (timeParts.size != 2) return@mapNotNull null
-            val minutes = timeParts[0].toIntOrNull() ?: return@mapNotNull null
-            val seconds = timeParts[1].toFloatOrNull() ?: return@mapNotNull null
-            val time = (minutes * 60 + seconds) * 1000
-            val lyric = line.substring(timeIndex + 1)
-            if (lyric.isBlank() || lyric.trim() == "//") return@mapNotNull null
-            time to if (formatText) lyric.replace(Regex("(?!\\n)\\s+"), " ").trim() else lyric
-        }
-    }*/
     fun formatLrcEntries(lrcText: String): List<List<Pair<Float, String>>> {
+        val lyrics = parse(lrcText)
+        YosLyricsFactory.publishOtherSide(lyrics.otherSide)
+        return lyrics.entries
+    }
+
+    private fun readEntries(lrcText: String): List<List<Pair<Float, String>>> {
         val lrcLines = lrcText.lines()
         val timeLyricPairs = mutableListOf<MutableList<Pair<Float, String>>>()
-        lrcLines.fastForEachIndexed { index, line ->
+        lrcLines.forEachIndexed { index, line ->
             //将文本中完全相同而且重复的两个时间轴修改为一个
             //比如[12:34.56][12:34.56]改为[12:34.56]
             var remainingLine =
                 line.replace(Regex("([\\[\\]]){2,}"), "$1").replace(Regex("<([^>]+)>"), "[$1]")
                     .replace(Regex("(\\[\\d{2}:\\d{2}\\.\\d{2,3}]){2,}"), "$1")
-            println("歌词处理：$remainingLine")
             val currentLinePairs = mutableListOf<Pair<Float, String>>()
             while (remainingLine.isNotEmpty()) {
-                /*val timeIndex = remainingLine.indexOf("]")
-                if (timeIndex == -1) break
-                val timeText = remainingLine.substring(1, timeIndex)
-                val timeParts = timeText.split(":")
-                if (timeParts.size != 2) break
-                val minutes = timeParts[0].toIntOrNull() ?: break
-                val seconds = timeParts[1].toFloatOrNull() ?: break
-                val time = (minutes * 60 + seconds) * 1000
-                remainingLine = remainingLine.substring(timeIndex + 1)
-                val nextTimeIndex = remainingLine.indexOf("[")
-                val lyric = if (nextTimeIndex != -1) {
-                    remainingLine.substring(0, nextTimeIndex)
-                } else {
-                    remainingLine
-                }*/
-
                 val timeIndex = remainingLine.indexOf("[")
                 if (timeIndex == -1) break
                 val timeAfter = remainingLine.indexOf("]")
@@ -84,7 +72,7 @@ class YosLrcFactory(private val formatText: Boolean = true) {
                                 val nextSeconds = nextTimeParts[1].toFloatOrNull()
                                 if (nextMinutes != null && nextSeconds != null) {
                                     val nextTime = (nextMinutes * 60 + nextSeconds) * 1000
-                                    if (nextTime - time <= 4200) {
+                                    if (nextTime - time <= BLANK_LINE_MAX_GAP_MS) {
                                         // 忽略当前行的处理，进行下一行的处理
                                         break
                                     }
@@ -108,7 +96,7 @@ class YosLrcFactory(private val formatText: Boolean = true) {
                     currentLinePairs.add(time to lyric.replace(Regex("(?!\\n)\\s+"), " "))
                 } else {
                     // 正常句子成分
-                    if (/*lyric.isNotBlank() && */lyric.trim() != "//") {
+                    if (lyric.trim() != "//") {
                         currentLinePairs.add(
                             time to lyric.replace(Regex("(?!\\n)\\s+"), " ")
                         )
@@ -122,7 +110,7 @@ class YosLrcFactory(private val formatText: Boolean = true) {
                             time to remainingLine.replace("//", "").replace(
                                 Regex("(?!\\n)\\s+"),
                                 " "
-                            )/*.trim()*/
+                            )
                         )
                     }
                     remainingLine = ""
@@ -132,7 +120,6 @@ class YosLrcFactory(private val formatText: Boolean = true) {
                 val existingList =
                     timeLyricPairs.find { it.first().first == currentLinePairs.first().first }
                 if (existingList != null) {
-                    // existingList.remove(currentLinePairs[0].first to "")
                     existingList.addAll(currentLinePairs)
                 } else {
                     currentLinePairs.add(currentLinePairs[0].first to "")
@@ -140,21 +127,21 @@ class YosLrcFactory(private val formatText: Boolean = true) {
                 }
             }
         }
-        val processedEntries = processOtherSide(timeLyricPairs)
-        return processedEntries.filter { it.isNotEmpty() }
+        return timeLyricPairs
     }
 
-    private fun processOtherSide(lrcEntries: List<List<Pair<Float, String>>>): List<List<Pair<Float, String>>> {
+    /** Returns the lines without their "Singer:" marker pairs, and the side of each line. */
+    private fun processOtherSide(
+        lrcEntries: List<List<Pair<Float, String>>>
+    ): Pair<List<List<Pair<Float, String>>>, List<Boolean>> {
         // 对唱处理
-        val otherSideResult = mutableStateListOf<Boolean>()
+        val otherSideResult = mutableListOf<Boolean>()
         var otherSide = false
         var lastSinger: String? = null
         var otherSideFirstTime = false
 
         val filteredLrcEntries = lrcEntries.map { lines ->
-            val lyric = lines.fastJoinToString(separator = "", transform = {
-                it.second
-            })
+            val lyric = lines.joinToString(separator = "") { it.second }
 
             var deleteType = -1
 
@@ -162,9 +149,7 @@ class YosLrcFactory(private val formatText: Boolean = true) {
                 otherSide = !otherSide
             } else if (lines.size > 1) {
                 val currentSinger = lines[1].second
-                println("检查：$currentSinger")
                 if (currentSinger.matches(Regex(".+\\s*:\\s*"))) {
-                    println("符合要求：$lyric")
                     deleteType = 0
                     if (lastSinger != null && lastSinger == currentSinger) {
                         // 保持 otherSide 不变
@@ -179,31 +164,21 @@ class YosLrcFactory(private val formatText: Boolean = true) {
                 }
             }
 
-            /*if (runCatching { lyric.ifNeedMirror() }.getOrDefault(false)) {
-                otherSideResult.add(!otherSide)
-            } else {
-                otherSideResult.add(otherSide)
-            }*/
-
             otherSideResult.add(otherSide)
-
 
             lines.filterIndexed { index, char ->
                 !((index == 1 && char.second.matches(Regex(".+\\s*:\\s*"))) && deleteType == 0)
             }
         }
 
-        MediaViewModelObject.otherSideForLines.clear()
-        MediaViewModelObject.otherSideForLines.addAll(otherSideResult)
-        //println(MediaViewModelObject.otherSideForLines)
+        return filteredLrcEntries to otherSideResult
+    }
 
-        //println(filteredLrcEntries)
-        return filteredLrcEntries
+    companion object {
+        /**
+         * A blank line only survives when the next line starts more than this long after it.
+         * Shorter gaps are not worth a countdown.
+         */
+        const val BLANK_LINE_MAX_GAP_MS = 4200f
     }
 }
-
-/*
-private fun String.ifNeedMirror(): Boolean {
-    val directionality = Character.getDirectionality(this.trim().first())
-    return directionality == Character.DIRECTIONALITY_RIGHT_TO_LEFT || directionality == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC
-}*/

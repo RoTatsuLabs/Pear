@@ -7,9 +7,12 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import yos.music.player.code.utils.lrc.YosLyrics
 
 @Stable
 object MediaViewModelObject {
+    // The lyrics of the playing song. YosLyricsFactory.publish sets all three values together.
+    val lyrics: MutableState<YosLyrics> = mutableStateOf(YosLyrics.EMPTY)
     val lrcEntries: MutableState<List<List<Pair<Float, String>>>> = mutableStateOf(listOf())
     val otherSideForLines = mutableStateListOf<Boolean>()
 

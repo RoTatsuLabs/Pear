@@ -5,6 +5,7 @@ All notable changes to Pear are listed here, newest first.
 ## [Unreleased]
 
 ### Changes
+* Read lyrics from a TTML file next to the song, in addition to LRC. Word timing, duet sides and translations come from the file, and songwriter credits are kept for the lyric view.
 * Refresh the library on every launch by default. The setting can still turn it off.
 * Speed up the song list by building the visible song list once instead of on every read.
 * Stop printing the whole library and the saved queue to the log after each scan and save.
