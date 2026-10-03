@@ -5,6 +5,15 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.compose'
 }
 
+// CI passes these with -PpearVersionName and -PpearVersionCode. A local build
+// keeps the defaults below.
+def pearVersionName = project.findProperty("pearVersionName") ?: "1.0.0"
+def pearVersionCode = (project.findProperty("pearVersionCode") ?: "1").toString().toInteger()
+
+// Signing is read from the environment so no key ever lands in the repository.
+// Without PEAR_KEYSTORE_FILE the release build stays unsigned, as it was before.
+def pearKeystoreFile = System.getenv("PEAR_KEYSTORE_FILE")
+
 android {
     namespace 'yos.music.player'
     compileSdk 34
@@ -13,8 +22,8 @@ android {
         applicationId "yos.music.player"
         minSdk 23
         targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        versionCode pearVersionCode
+        versionName pearVersionName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -26,12 +35,26 @@ android {
         renderscriptSupportModeEnabled true
     }
 
+    signingConfigs {
+        release {
+            if (pearKeystoreFile) {
+                storeFile file(pearKeystoreFile)
+                storePassword System.getenv("PEAR_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("PEAR_KEY_ALIAS")
+                keyPassword System.getenv("PEAR_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true
             zipAlignEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (pearKeystoreFile) {
+                signingConfig signingConfigs.release
+            }
             applicationVariants.all { variant ->
                 variant.outputs.all {
                     def appName = "Flamingo"
@@ -86,7 +109,7 @@ android {
 
 dependencies {
     implementation fileTree(include: ["*.*"], dir: "libs")
-    implementation project ":overscroll_core"
+    implementation project(":overscroll_core")
 
     implementation 'androidx.core:core-ktx:1.13.1'
     implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
