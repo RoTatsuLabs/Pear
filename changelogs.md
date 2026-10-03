@@ -5,6 +5,9 @@ All notable changes to Pear are listed here, newest first.
 ## [Unreleased]
 
 ### Changes
+* Light up the lyric being sung with a soft glow that follows the highlight, holds while a word is held and fades out after it. A line that has been sung now fades from white back to grey instead of staying white.
+* Show a transliteration in Latin letters above the lyrics when the song has one. A TTML file can bring its own, and other lyrics in Chinese, Japanese, Korean, Cyrillic, Greek and more get one automatically. Word timed lines show it above each word and light it up with the word.
+* Show the credits from a TTML file, such as the songwriters, below the last lyric line.
 * Read lyrics from a TTML file next to the song, in addition to LRC. Word timing, duet sides and translations come from the file, and songwriter credits are kept for the lyric view.
 * Refresh the library on every launch by default. The setting can still turn it off.
 * Speed up the song list by building the visible song list once instead of on every read.
