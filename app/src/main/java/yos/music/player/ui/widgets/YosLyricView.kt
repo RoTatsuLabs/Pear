@@ -932,7 +932,8 @@ fun LazyItemScope.LyricItem(
         val base = if (otherSide) MainTextStyle.copy(textAlign = TextAlign.End) else MainTextStyle
         if (romanPerWord) {
             base.copy(
-                lineHeight = base.lineHeight + TransliterationBand,
+                // TextUnit has no plus operator, both values are in sp
+                lineHeight = (base.lineHeight.value + TransliterationBand.value).sp,
                 // the extra height goes above the text, where the transliteration is drawn
                 lineHeightStyle = LineHeightStyle(
                     alignment = LineHeightStyle.Alignment.Bottom,
