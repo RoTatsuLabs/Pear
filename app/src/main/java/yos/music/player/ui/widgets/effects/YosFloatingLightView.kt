@@ -11,16 +11,20 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -42,6 +46,7 @@ import com.flaviofaria.kenburnsview.RandomTransitionGenerator
 import com.google.android.renderscript.Toolkit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import yos.music.player.code.utils.lrc.YosLyricStack
 import yos.music.player.code.utils.others.BitmapResolver
 import yos.music.player.data.libraries.SettingsLibrary.NowplayingBackgroundEffect
 import yos.music.player.ui.pages.NowPlayingPage
@@ -66,6 +71,7 @@ fun YosFloatingLight(
     val drawable = remember(album) {
         mutableStateOf<Drawable?>(null)
     }
+    val lightness = remember { mutableFloatStateOf(0f) }
 
     println("封面：" + drawable.value)
 
@@ -82,9 +88,9 @@ fun YosFloatingLight(
                     BitmapResolver.bitmapCompress(this)
                 }
                 if (thisBitmap != null) {
-                    drawable.value = imageResolve(
-                        thisBitmap
-                    ).toDrawable(context.resources)
+                    val resolved = imageResolve(thisBitmap)
+                    lightness.floatValue = resolved.averageLightness()
+                    drawable.value = resolved.toDrawable(context.resources)
                     thisBitmap.recycle()
                 }
                 imageLoader.shutdown()
@@ -136,7 +142,7 @@ fun YosFloatingLight(
                             println("流光：设置背景")
                             it.setImageDrawable(drawable.value!!)
                             lastOption.value = thisOptionType
-                        } else if (!isPlaying() || !active) {
+                        } else if (!isPlaying() || !active || !lossEffect.value) {
                             val thisOptionType = Option.Pause.name
                             if (lastOption.value == thisOptionType) return@AndroidView
                             println("流光：暂停")
@@ -195,7 +201,46 @@ fun YosFloatingLight(
                 colorFilter = ColorFilter.tint(Color(0x33000000), BlendMode.Overlay)
             )
         }
+
+        YosWrapper {
+            val scrim = animateFloatAsState(
+                targetValue = if (lossEffect.value) 0f else 1f,
+                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+            )
+            Spacer(
+                Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        if (scrim.value <= 0f) return@drawBehind
+                        val boost = YosLyricStack.scrimBoost(lightness.floatValue)
+                        fun shade(alpha: Float) = Color.Black.copy((alpha * boost).coerceAtMost(0.8f))
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                0f to shade(0.34f),
+                                0.55f to shade(0.48f),
+                                1f to shade(0.64f)
+                            ),
+                            alpha = scrim.value
+                        )
+                    }
+            )
+        }
     }
+}
+
+private fun Bitmap.averageLightness(): Float {
+    val sample = Bitmap.createScaledBitmap(this, 8, 8, true)
+    var sum = 0f
+    for (y in 0 until 8) {
+        for (x in 0 until 8) {
+            val pixel = sample.getPixel(x, y)
+            sum += (0.299f * android.graphics.Color.red(pixel) +
+                    0.587f * android.graphics.Color.green(pixel) +
+                    0.114f * android.graphics.Color.blue(pixel)) / 255f
+        }
+    }
+    if (sample !== this) sample.recycle()
+    return sum / 64f
 }
 
 fun imageResolve(image: Bitmap, moreLight: Boolean = false): Bitmap {

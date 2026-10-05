@@ -9,7 +9,14 @@ enum class YosLyricFormat { LRC, TTML }
  * [field] is the name the source used, [values] are the texts exactly as the source
  * wrote them. Nothing is shortened or reworded.
  */
-data class YosLyricCredit(val field: String, val values: List<String>)
+data class YosLyricCredit(val field: String, val values: List<String>) {
+    /** The heading shown in front of [values]; the values themselves are never changed. */
+    val label: String
+        get() = when (this.field.lowercase()) {
+            "songwriters", "songwriter" -> "Written by"
+            else -> this.field.replaceFirstChar { it.uppercase() }
+        }
+}
 
 /**
  * Parsed lyrics. Both LRC and TTML end up in this one shape.
