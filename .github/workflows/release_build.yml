@@ -1,75 +1,212 @@
-name: Release build
+# Manually builds, signs, tags and publishes a draft Pear GitHub Release.
+name: Release Build
+
+run-name: Build and Release v${{ inputs.version }}
 
 on:
-  push:
-    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Base version (without "v" or beta suffix)'
+        required: true
+        type: string
+      beta:
+        description: 'Beta release'
+        default: false
+        required: false
+        type: boolean
+      message:
+        description: 'Message shown at the top of the release notes'
+        default: ''
+        required: false
+        type: string
 
 permissions:
   contents: write
+  checks: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   release:
+    name: Build, Sign & Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      # The wrapper script is stored without the executable bit in the repository.
+      - name: Clone repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
       - name: Make gradlew executable
         run: chmod +x gradlew
-
-      - name: Read the version from the tag
-        id: version
+      - name: Setup Android SDK
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "${VERSION%%-*}"
-          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "code=$((MAJOR * 10000 + MINOR * 100 + PATCH))" >> "$GITHUB_OUTPUT"
-          if [[ "$VERSION" == *-* ]]; then
-            echo "prerelease=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Check the changelog and pull out the notes
-        run: |
-          python3 .github/scripts/validate_changelog.py
-          python3 .github/scripts/validate_changelog.py --extract "${{ steps.version.outputs.name }}" > release_notes.md
-
-      - uses: actions/setup-java@v4
+          ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "build-tools;35.0.0"
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-
-      - uses: gradle/actions/setup-gradle@v4
-
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Copy CI gradle.properties
+        run: |
+          mkdir -p ~/.gradle
+          cp .github/runner-files/ci-gradle.properties ~/.gradle/gradle.properties
+      - name: Normalize version
+        shell: bash
+        run: |
+          VERSION="$(echo '${{ inputs.version }}' | tr -d '[:space:]')"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must be in major.minor.patch form, for example 1.2.3" >&2
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          echo "VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))" >> "$GITHUB_ENV"
+      - name: Check the changelog and extract release notes
+        id: changelog
+        run: |
+          python3 .github/scripts/validate_changelog.py
+          python3 .github/scripts/validate_changelog.py --extract "$VERSION" > release_notes.md
+          {
+            echo 'CHANGELOG<<EOF'
+            cat release_notes.md
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      - name: Prepare release version
+        run: |
+          if [ "${{ inputs.beta }}" = "true" ]; then
+            last_beta="$(git tag -l --sort=refname "v${VERSION}-b*" | tail -n1)"
+            if [ -z "$last_beta" ]; then
+              beta_count=1
+            else
+              beta_count="${last_beta##*-b}"
+              if ! [[ "$beta_count" =~ ^[0-9]+$ ]]; then
+                echo "::error::Could not determine the next beta number from $last_beta" >&2
+                exit 1
+              fi
+              beta_count=$((beta_count + 1))
+            fi
+            echo "VERSION_TAG=v${VERSION}-b${beta_count}" >> "$GITHUB_ENV"
+            echo "BUILD_VERSION=${VERSION}-b${beta_count}" >> "$GITHUB_ENV"
+          else
+            echo "VERSION_TAG=v${VERSION}" >> "$GITHUB_ENV"
+            echo "BUILD_VERSION=${VERSION}" >> "$GITHUB_ENV"
+          fi
       - name: Prepare the signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.PEAR_KEYSTORE_BASE64 }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "PEAR_KEYSTORE_BASE64 is not set; a release has to be signed." >&2
+            echo "::error::PEAR_KEYSTORE_BASE64 is not set; releases must be signed." >&2
             exit 1
           fi
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/pear.jks"
           echo "PEAR_KEYSTORE_FILE=$RUNNER_TEMP/pear.jks" >> "$GITHUB_ENV"
-
-      - name: Build the release APK
+      - name: Build the release APKs
         env:
           PEAR_KEYSTORE_PASSWORD: ${{ secrets.PEAR_KEYSTORE_PASSWORD }}
           PEAR_KEY_ALIAS: ${{ secrets.PEAR_KEY_ALIAS }}
           PEAR_KEY_PASSWORD: ${{ secrets.PEAR_KEY_PASSWORD }}
         run: |
           ./gradlew assembleRelease --stacktrace \
-            -PpearVersionName="${{ steps.version.outputs.name }}" \
-            -PpearVersionCode="${{ steps.version.outputs.code }}"
-
-      - name: Publish the release
-        env:
-          GH_TOKEN: ${{ github.token }}
+            -PpearVersionName="${BUILD_VERSION}" \
+            -PpearVersionCode="${VERSION_CODE}"
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6
+        if: success() || failure()
+        with:
+          include_passed: true
+          detailed_summary: true
+          report_paths: '**/build/test-results/test*/TEST-*.xml'
+      - name: Verify APK signatures
         run: |
-          FLAGS=""
-          if [ "${{ steps.version.outputs.prerelease }}" = "true" ]; then FLAGS="--prerelease"; fi
-          gh release create "$GITHUB_REF_NAME" $FLAGS \
-            --title "Pear ${{ steps.version.outputs.name }}" \
-            --notes-file release_notes.md \
-            app/build/outputs/apk/release/*
+          set -e
+          dir="app/build/outputs/apk/release"
+          count=0
+          while IFS= read -r apk; do
+            echo "Verifying $apk"
+            "${ANDROID_SDK_ROOT}/build-tools/35.0.0/apksigner" verify "$apk"
+            count=$((count + 1))
+          done < <(find "$dir" -maxdepth 1 -type f -name '*.apk' | sort)
+          if [ "$count" -ne 5 ]; then
+            echo "::error::Expected 5 signed release APKs, found $count" >&2
+            exit 1
+          fi
+      - name: Rename APKs and calculate checksums
+        run: |
+          set -e
+          dir="app/build/outputs/apk/release"
+          find_apk() {
+            local abi="$1"
+            local file
+            file="$(find "$dir" -maxdepth 1 -type f -name "app-${abi}-release*.apk" | head -n1)"
+            if [ -z "$file" ]; then
+              echo "::error::Missing $abi release APK in $dir" >&2
+              exit 1
+            fi
+            printf '%s\n' "$file"
+          }
+          universal="$(find "$dir" -maxdepth 1 -type f -name 'app-universal-release*.apk' | head -n1)"
+          if [ -z "$universal" ]; then
+            echo "::error::Missing universal release APK in $dir" >&2
+            exit 1
+          fi
+          mv "$universal" "pear-${VERSION_TAG}.apk"
+          mv "$(find_apk arm64-v8a)" "pear-arm64-v8a-${VERSION_TAG}.apk"
+          mv "$(find_apk armeabi-v7a)" "pear-armeabi-v7a-${VERSION_TAG}.apk"
+          mv "$(find_apk x86)" "pear-x86-${VERSION_TAG}.apk"
+          mv "$(find_apk x86_64)" "pear-x86_64-${VERSION_TAG}.apk"
+          sha256sum "pear-${VERSION_TAG}.apk" > universal.sha256
+          sha256sum "pear-arm64-v8a-${VERSION_TAG}.apk" > arm64-v8a.sha256
+          sha256sum "pear-armeabi-v7a-${VERSION_TAG}.apk" > armeabi-v7a.sha256
+          sha256sum "pear-x86-${VERSION_TAG}.apk" > x86.sha256
+          sha256sum "pear-x86_64-${VERSION_TAG}.apk" > x86_64.sha256
+      - name: Upload R8 mapping
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: mapping-${{ github.sha }}
+          path: app/build/outputs/mapping/release
+          if-no-files-found: error
+          retention-days: 14
+      - name: Create Release
+        uses: softprops/action-gh-release@efb35369e0ad2af669f228072c1b0d510eae64 # v3
+        with:
+          tag_name: ${{ env.VERSION_TAG }}
+          name: Pear ${{ env.VERSION_TAG }}
+          body: |
+            ${{ inputs.message }}
+
+            ${{ steps.changelog.outputs.CHANGELOG }}
+            ---
+
+            ### Checksums
+
+            | Variant | SHA-256 |
+            | ------- | ------- |
+            | Universal | See `universal.sha256` |
+            | arm64-v8a | See `arm64-v8a.sha256` |
+            | armeabi-v7a | See `armeabi-v7a.sha256` |
+            | x86 | See `x86.sha256` |
+            | x86_64 | See `x86_64.sha256` |
+
+            > If you are unsure which version to download, use the universal APK.
+          files: |
+            pear-${{ env.VERSION_TAG }}.apk
+            pear-arm64-v8a-${{ env.VERSION_TAG }}.apk
+            pear-armeabi-v7a-${{ env.VERSION_TAG }}.apk
+            pear-x86-${{ env.VERSION_TAG }}.apk
+            pear-x86_64-${{ env.VERSION_TAG }}.apk
+            universal.sha256
+            arm64-v8a.sha256
+            armeabi-v7a.sha256
+            x86.sha256
+            x86_64.sha256
+          draft: true
+          prerelease: ${{ inputs.beta }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

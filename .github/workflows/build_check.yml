@@ -1,0 +1,141 @@
+name: Build Check
+
+on:
+  pull_request:
+    branches: [master, nightly]
+    paths:
+      - '**'
+      - '!**.md'
+      - 'changelogs.md'
+
+permissions:
+  contents: read
+  checks: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Setup Android SDK
+        run: |
+          ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "build-tools;35.0.0"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Copy CI gradle.properties
+        run: |
+          mkdir -p ~/.gradle
+          cp .github/runner-files/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - name: Check the changelog
+        run: python3 .github/scripts/validate_changelog.py --require-unreleased
+
+      - name: Build the release APKs
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6
+        if: success() || failure()
+        with:
+          include_passed: true
+          detailed_summary: true
+          report_paths: '**/build/test-results/test*/TEST-*.xml'
+
+      - name: Prepare APKs for smoke test
+        run: |
+          set -e
+          dir="app/build/outputs/apk/release"
+          arm64="$(find "$dir" -maxdepth 1 -type f -name 'app-arm64-v8a-release*.apk' | head -n1)"
+          x86_64="$(find "$dir" -maxdepth 1 -type f -name 'app-x86_64-release*.apk' | head -n1)"
+          if [ -z "$arm64" ] || [ -z "$x86_64" ]; then
+            echo "::error::Required ABI APKs were not produced" >&2
+            exit 1
+          fi
+          cp "$arm64" pr-arm64-v8a.apk
+          cp "$x86_64" pr-x86_64.apk
+
+      - name: Upload arm64-v8a APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: arm64-v8a-${{ github.sha }}
+          path: pr-arm64-v8a.apk
+          if-no-files-found: error
+
+      - name: Upload x86_64 APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: x86_64-${{ github.sha }}
+          path: pr-x86_64.apk
+          if-no-files-found: error
+
+      - name: Upload R8 mapping
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: mapping-${{ github.sha }}
+          path: app/build/outputs/mapping/release
+          if-no-files-found: error
+
+  smoke-test:
+    name: Smoke-test x86_64 release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Download x86_64 APK
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: x86_64-${{ github.sha }}
+          path: apk
+
+      - name: Setup Android SDK
+        run: |
+          ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "build-tools;35.0.0"
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Sign APK with an ephemeral debug key
+        run: |
+          set -e
+          apk="$(find apk -type f -name '*.apk' | head -n1)"
+          keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey \
+            -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=CI,O=CI,C=US"
+          "${ANDROID_SDK_ROOT}/build-tools/35.0.0/apksigner" sign \
+            --ks debug.keystore --ks-pass pass:android --key-pass pass:android \
+            --out app-smoke-test.apk "$apk"
+
+      - name: Launch app and check for crashes
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: 34
+          arch: x86_64
+          disable-animations: true
+          script: .github/runner-files/smoke-test.sh

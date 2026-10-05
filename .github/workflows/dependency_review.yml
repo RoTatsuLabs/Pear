@@ -1,0 +1,25 @@
+name: Dependency Review
+
+on:
+  pull_request:
+    paths:
+      - '**/build.gradle'
+      - '**/build.gradle.kts'
+      - 'settings.gradle'
+      - 'settings.gradle.kts'
+      - 'gradle/**'
+      - '.github/workflows/dependency_review.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: Review dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@595b5aeba73380359d98a5e087f648dbb0edce1b # v4.7.3
