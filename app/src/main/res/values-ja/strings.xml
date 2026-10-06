@@ -99,7 +99,7 @@
     <string name="settings_performance_ui_nowplaying_background_effect">背景の動的効果</string>
     <string name="settings_performance_ui_nowplaying_background_effect_desc">再生ページの背景の動的効果、パフォーマンスに問題を引き起こす可能性があります。</string>
     <string name="settings_performance_ui_full_screen_cover">全画面アルバムアート（静止）</string>
-    <string name="settings_performance_ui_full_screen_cover_desc">再生ページの上部にアルバムカバーを画面幅いっぱいに表示し、ぼかした背景へなじませます。</string>
+    <string name="settings_performance_ui_full_screen_cover_desc">再生ページの上部にアルバムカバーを画面幅いっぱいに表示し、カバーの色から作った暗いグラデーションへなじませます。</string>
     <string name="page_library_playlists_add_title">新しいプレイリストを作成…</string>
     <string name="page_library_playlists_fav_title">お気に入りの曲</string>
     <string name="settings_performance_notification_title">メディア通知</string>

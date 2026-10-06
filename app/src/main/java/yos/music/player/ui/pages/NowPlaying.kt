@@ -155,6 +155,7 @@ import yos.music.player.ui.pages.NowPlayingPage.PlayingList
 import yos.music.player.ui.theme.YosRoundedCornerShape
 import yos.music.player.ui.widgets.YosLyricView
 import yos.music.player.ui.widgets.basic.FullBleedCover
+import yos.music.player.ui.widgets.effects.CoverBackdrop
 import yos.music.player.ui.widgets.effects.YosFloatingLight
 import yos.music.player.ui.widgets.audio.MusicQualityIndicator
 import yos.music.player.ui.widgets.basic.ImageQuality
@@ -290,39 +291,46 @@ fun NowPlaying(
             if (cover.value > 0f) {
                 Box(
                     Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.56f)
-                        .graphicsLayer {
-                            alpha = cover.value
-                            compositingStrategy = CompositingStrategy.Offscreen
-                        }
-                        .drawWithContent {
-                            drawContent()
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                    0f to Color.Black,
-                                    0.6f to Color.Black,
-                                    1f to Color.Transparent
-                                ),
-                                blendMode = BlendMode.DstIn
-                            )
-                        }
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = cover.value }
                 ) {
-                    FullBleedCover(
+                    CoverBackdrop(
                         dataLambda = { thisMusicPlaying.value?.thumb },
                         modifier = Modifier.fillMaxSize()
                     )
-                    Spacer(
+                    Box(
                         Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(0.2f)
-                            .background(
-                                Brush.verticalGradient(
-                                    0f to Color(0x59000000),
-                                    1f to Color.Transparent
+                            .fillMaxHeight(0.56f)
+                            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                            .drawWithContent {
+                                drawContent()
+                                drawRect(
+                                    brush = Brush.verticalGradient(
+                                        0f to Color.Black,
+                                        0.78f to Color.Black,
+                                        1f to Color.Transparent
+                                    ),
+                                    blendMode = BlendMode.DstIn
                                 )
-                            )
-                    )
+                            }
+                    ) {
+                        FullBleedCover(
+                            dataLambda = { thisMusicPlaying.value?.thumb },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Spacer(
+                            Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(0.2f)
+                                .background(
+                                    Brush.verticalGradient(
+                                        0f to Color(0x59000000),
+                                        1f to Color.Transparent
+                                    )
+                                )
+                        )
+                    }
                 }
             }
         }
