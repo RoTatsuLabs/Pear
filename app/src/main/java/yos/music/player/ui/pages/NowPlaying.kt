@@ -153,6 +153,7 @@ import yos.music.player.ui.pages.NowPlayingPage.Lyric
 import yos.music.player.ui.pages.NowPlayingPage.PlayingList
 import yos.music.player.ui.theme.YosRoundedCornerShape
 import yos.music.player.ui.widgets.YosLyricView
+import yos.music.player.ui.widgets.basic.FullBleedCover
 import yos.music.player.ui.widgets.effects.YosFloatingLight
 import yos.music.player.ui.widgets.audio.MusicQualityIndicator
 import yos.music.player.ui.widgets.basic.ImageQuality
@@ -278,6 +279,37 @@ fun NowPlaying(
                 nowPage = { nowPageLambda() },
                 showMiniPlayer = showMiniPlayer
             )
+        }
+
+        YosWrapper {
+            val cover = animateFloatAsState(
+                targetValue = if (SettingsLibrary.FullScreenCover && nowPageLambda() == Album) 1f else 0f,
+                animationSpec = TweenSpec(durationMillis = 300)
+            )
+            if (cover.value > 0f) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = cover.value }
+                ) {
+                    FullBleedCover(
+                        dataLambda = { thisMusicPlaying.value?.thumb },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    Spacer(
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color(0x66000000),
+                                    0.25f to Color.Transparent,
+                                    0.5f to Color.Transparent,
+                                    1f to Color(0xCC000000)
+                                )
+                            )
+                    )
+                }
+            }
         }
 
 
@@ -719,6 +751,7 @@ private fun ColumnScope.Album(
                 .fillMaxWidth()
                 .graphicsLayer {
                     compositingStrategy = CompositingStrategy.ModulateAlpha
+                    alpha = if (SettingsLibrary.FullScreenCover) 0f else 1f
                     // scaleX = scale.value
                     // scaleY = scale.value
                 }

@@ -133,6 +133,13 @@ object SettingsLibrary {
         initialValue = false
     )
 
+    @Stable
+    var FullScreenCover by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_performance_ui_full_screen_cover",
+        initialValue = false
+    )
+
     /**
      * 界面工具栏模糊效果
      */

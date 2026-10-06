@@ -98,6 +98,8 @@
     <string name="page_library_playlists_music_total">%d 首歌曲</string>
     <string name="settings_performance_ui_nowplaying_background_effect">背景動態效果</string>
     <string name="settings_performance_ui_nowplaying_background_effect_desc">播放頁面背景的動態效果，可能導致性能問題。</string>
+    <string name="settings_performance_ui_full_screen_cover">全螢幕專輯封面</string>
+    <string name="settings_performance_ui_full_screen_cover_desc">在播放頁面和專輯頁面中，將專輯封面鋪滿整個螢幕。</string>
     <string name="page_library_playlists_add_title">新建播放列表…</string>
     <string name="page_library_playlists_fav_title">喜愛的歌曲</string>
     <string name="settings_performance_notification_title">媒體通知</string>

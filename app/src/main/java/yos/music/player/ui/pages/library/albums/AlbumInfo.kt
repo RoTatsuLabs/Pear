@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
@@ -57,6 +59,7 @@ import kotlinx.coroutines.launch
 import yos.music.player.R
 import yos.music.player.code.MediaController
 import yos.music.player.data.libraries.MusicLibrary
+import yos.music.player.data.libraries.SettingsLibrary
 import yos.music.player.data.libraries.YosMediaItem
 import yos.music.player.data.libraries.artistsList
 import yos.music.player.data.libraries.artistsName
@@ -65,6 +68,7 @@ import yos.music.player.data.libraries.defaultArtistsName
 import yos.music.player.data.libraries.defaultTitle
 import yos.music.player.data.objects.LibraryObject
 import yos.music.player.ui.theme.withNight
+import yos.music.player.ui.widgets.basic.FullBleedCover
 import yos.music.player.ui.widgets.basic.ImageQuality
 import yos.music.player.ui.widgets.basic.ShadowImage
 import yos.music.player.ui.widgets.basic.Title
@@ -146,6 +150,7 @@ fun AlbumInfo(
             }
 
             val scope = rememberCoroutineScope()
+            val fullScreenCover = SettingsLibrary.FullScreenCover
 
             LazyColumn(
                 state = state,
@@ -153,20 +158,47 @@ fun AlbumInfo(
                     .fillMaxSize()
                     .overScrollVertical(),
                 flingBehavior = rememberOverscrollFlingBehavior { state },
-                contentPadding = PaddingValues(bottom = 18.dp, top = 54.dp)
+                contentPadding = PaddingValues(bottom = 18.dp, top = if (fullScreenCover) 0.dp else 54.dp)
             ) {
+                if (fullScreenCover) {
+                    item("AlbumCover") {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                        ) {
+                            FullBleedCover(
+                                dataLambda = { songs.getOrNull(0)?.thumb },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            Spacer(
+                                Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            0f to Color(0x66000000),
+                                            0.3f to Color.Transparent,
+                                            0.65f to Color.Transparent,
+                                            1f to MaterialTheme.colorScheme.background
+                                        )
+                                    )
+                            )
+                        }
+                    }
+                }
+
                 item("AlbumInfo") {
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .padding(top = 9.5.dp)
+                            .padding(top = if (fullScreenCover) 0.dp else 9.5.dp)
                             .padding(horizontal = 18.dp)
-                            .statusBarsPadding(),
+                            .then(if (fullScreenCover) Modifier else Modifier.statusBarsPadding()),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         /*with(sharedTransitionScope) {*/
-                        ShadowImage(
+                        if (!fullScreenCover) ShadowImage(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 54.5.dp)
@@ -181,7 +213,7 @@ fun AlbumInfo(
                             shadowType = ShadowType.Medium
                         )
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        if (!fullScreenCover) Spacer(modifier = Modifier.height(14.dp))
 
                         Text(
                             text = albumName.value,

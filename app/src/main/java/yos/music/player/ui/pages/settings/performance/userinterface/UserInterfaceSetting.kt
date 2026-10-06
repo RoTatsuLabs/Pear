@@ -115,6 +115,20 @@ fun UserInterfaceSetting(navController: NavController) =
 
                         ListHeader(content = stringResource(id = R.string.settings_performance_ui_nowplaying_background_effect_desc))
 
+                        GroupSpacerMedium()
+
+                        RoundColumn {
+                            SwitchItem(
+                                title = stringResource(id = R.string.settings_performance_ui_full_screen_cover),
+                                onClick = {
+                                    SettingsLibrary.FullScreenCover = !SettingsLibrary.FullScreenCover
+                                },
+                                checkedLambda = { SettingsLibrary.FullScreenCover }
+                            )
+                        }
+
+                        ListHeader(content = stringResource(id = R.string.settings_performance_ui_full_screen_cover_desc))
+
                         GroupSpacer()
                     }
                 }

@@ -5,6 +5,7 @@ All notable changes to Pear are listed here, newest first.
 ## [Unreleased]
 
 ### Changes
+* Add a Full-Screen Cover switch in the interface settings. When it is on, the playback page shows the album cover edge to edge behind the controls, and the album page opens with a full-width cover. It is off by default.
 * Blur the lyric lines more the further they are from the sung one, up to 8 dp like Apple Music, and turn the lyric blur on by default on Android 12 and newer. Anyone who switched it off keeps it off.
 * Rework the lyric view after BitChord. Lines around the sung one fade and blur in steps, lines settle on one curve, the scroll starts a little before the next line and the lines below follow one after another. Scrolling by hand flattens the dimming, a pressed line dips slightly, and an instrumental break shows three dots that fill in turn.
 * Give held notes a soft glow that moves along the sung characters. Only words held for about a second or more glow, and a longer hold glows more. It needs Android 12 or newer.
