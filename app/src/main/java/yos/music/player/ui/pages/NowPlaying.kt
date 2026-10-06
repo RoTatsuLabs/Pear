@@ -17,16 +17,19 @@ import android.net.Uri
 import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.BoundsTransform
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.EaseOutQuart
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -47,13 +50,16 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -102,11 +108,13 @@ import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -173,6 +181,12 @@ object NowPlayingPage {
 }
 
 private const val ShareAlbumKey = "album"
+private const val ShareTitleKey = "title"
+private const val ShareActionsKey = "actions"
+private val PageEasing = CubicBezierEasing(0.41f, 0f, 0.12f, 0.99f)
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+private val SharedBounds = BoundsTransform { _, _ -> tween(durationMillis = 520, easing = PageEasing) }
 private const val AnimDurationMillis = 300
 
 /*
@@ -286,52 +300,15 @@ fun NowPlaying(
         YosWrapper {
             val cover = animateFloatAsState(
                 targetValue = if (SettingsLibrary.FullScreenCover && nowPageLambda() == Album) 1f else 0f,
-                animationSpec = TweenSpec(durationMillis = 300)
+                animationSpec = tween(durationMillis = 450, easing = PageEasing)
             )
             if (cover.value > 0f) {
-                Box(
-                    Modifier
+                CoverBackdrop(
+                    dataLambda = { thisMusicPlaying.value?.thumb },
+                    modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer { alpha = cover.value }
-                ) {
-                    CoverBackdrop(
-                        dataLambda = { thisMusicPlaying.value?.thumb },
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(0.56f)
-                            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                            .drawWithContent {
-                                drawContent()
-                                drawRect(
-                                    brush = Brush.verticalGradient(
-                                        0f to Color.Black,
-                                        0.78f to Color.Black,
-                                        1f to Color.Transparent
-                                    ),
-                                    blendMode = BlendMode.DstIn
-                                )
-                            }
-                    ) {
-                        FullBleedCover(
-                            dataLambda = { thisMusicPlaying.value?.thumb },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        Spacer(
-                            Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(0.2f)
-                                .background(
-                                    Brush.verticalGradient(
-                                        0f to Color(0x59000000),
-                                        1f to Color.Transparent
-                                    )
-                                )
-                        )
-                    }
-                }
+                )
             }
         }
 
@@ -402,6 +379,10 @@ fun NowPlaying(
 
             // 这是小把手
             YosWrapper {
+                val handleAlpha = animateFloatAsState(
+                    targetValue = if (SettingsLibrary.FullScreenCover && nowPageLambda() == Album) 0f else 1f,
+                    animationSpec = tween(durationMillis = 250)
+                )
                 Column(Modifier.fillMaxWidth()) {
                     Box(
                         Modifier
@@ -411,6 +392,7 @@ fun NowPlaying(
                     ) {
                         Box(
                             Modifier
+                                .graphicsLayer { alpha = handleAlpha.value }
                                 .overlayEffect()
                                 .size(
                                     width = 32.dp,
@@ -428,6 +410,7 @@ fun NowPlaying(
                 SharedTransitionLayout {
                     Crossfade(
                         targetState = nowPageLambda(),
+                        animationSpec = tween(durationMillis = 350, easing = PageEasing),
                         modifier = Modifier
                             .fillMaxSize()
                             .statusBarsPadding()
@@ -437,25 +420,43 @@ fun NowPlaying(
                         //println("nowPageIt: $it")
                         when (it) {
                             Album ->
-                                Column(
+                                Box(
                                     Modifier
                                         .fillMaxSize()
                                         .clickable(enabled = false, onClick = {})
                                 ) {
+                                    val isAlbumVisible = nowPageLambda() == Album
+                                    if (SettingsLibrary.FullScreenCover) {
+                                        FullBleedArt(
+                                            modifier = Modifier.sharedElementWithCallerManagedVisibility(
+                                                sharedContentState = rememberSharedContentState(
+                                                    key = ShareAlbumKey
+                                                ),
+                                                visible = isAlbumVisible,
+                                                boundsTransform = SharedBounds
+                                            ),
+                                            albumUrl = { thisMusicPlaying.value?.thumb },
+                                            onAlbumPage = { nowPageLambda() == Album }
+                                        )
+                                    }
+                                Column(Modifier.fillMaxSize()) {
                                     YosWrapper {
                                         Column(Modifier.fillMaxHeight(0.595f)) {
-                                            val isVisible = nowPageLambda() == Album
-
-                                            Album(
-                                                modifier = Modifier.sharedElementWithCallerManagedVisibility(
-                                                    sharedContentState = rememberSharedContentState(
-                                                        key = ShareAlbumKey
+                                            if (SettingsLibrary.FullScreenCover) {
+                                                Spacer(Modifier.weight(1f))
+                                            } else {
+                                                Album(
+                                                    modifier = Modifier.sharedElementWithCallerManagedVisibility(
+                                                        sharedContentState = rememberSharedContentState(
+                                                            key = ShareAlbumKey
+                                                        ),
+                                                        visible = isAlbumVisible,
+                                                        boundsTransform = SharedBounds
                                                     ),
-                                                    visible = isVisible
-                                                ),
-                                                albumUrl = { thisMusicPlaying.value?.thumb },
-                                                isPlaying = isPlayingStatusLambda
-                                            )
+                                                    albumUrl = { thisMusicPlaying.value?.thumb },
+                                                    isPlaying = isPlayingStatusLambda
+                                                )
+                                            }
                                             AnimatedContent(
                                                 targetState = thisMusicPlaying.value,
                                                 transitionSpec = {
@@ -472,6 +473,13 @@ fun NowPlaying(
                                                             .fillMaxWidth()
                                                             .weight(1f)
                                                             .padding(end = 15.dp)
+                                                            .sharedElementWithCallerManagedVisibility(
+                                                                sharedContentState = rememberSharedContentState(
+                                                                    key = ShareTitleKey
+                                                                ),
+                                                                visible = isAlbumVisible,
+                                                                boundsTransform = SharedBounds
+                                                            )
                                                     ) {
                                                         Text(
                                                             text = it?.title
@@ -494,15 +502,26 @@ fun NowPlaying(
                                                     }
 
                                                     YosWrapper {
-                                                        ActionButtonsRow {
-                                                            it
+                                                        Box(
+                                                            Modifier.sharedElementWithCallerManagedVisibility(
+                                                                sharedContentState = rememberSharedContentState(
+                                                                    key = ShareActionsKey
+                                                                ),
+                                                                visible = isAlbumVisible,
+                                                                boundsTransform = SharedBounds
+                                                            )
+                                                        ) {
+                                                            ActionButtonsRow {
+                                                                it
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                }
+                                    }
+}
 
                             Lyric ->
                                 Column(Modifier.fillMaxSize()) {
@@ -513,12 +532,27 @@ fun NowPlaying(
                                                 sharedContentState = rememberSharedContentState(
                                                     key = ShareAlbumKey
                                                 ),
-                                                visible = isVisible
+                                                visible = isVisible,
+                                                boundsTransform = SharedBounds
                                             ),
                                             albumUrlLambda = {
                                                 thisMusicPlaying.value?.thumb
                                             },
-                                            musicPlayingLambda = { thisMusicPlaying.value }) {
+                                            musicPlayingLambda = { thisMusicPlaying.value },
+                                            titleModifier = Modifier.sharedElementWithCallerManagedVisibility(
+                                                sharedContentState = rememberSharedContentState(
+                                                    key = ShareTitleKey
+                                                ),
+                                                visible = isVisible,
+                                                boundsTransform = SharedBounds
+                                            ),
+                                            actionsModifier = Modifier.sharedElementWithCallerManagedVisibility(
+                                                sharedContentState = rememberSharedContentState(
+                                                    key = ShareActionsKey
+                                                ),
+                                                visible = isVisible,
+                                                boundsTransform = SharedBounds
+                                            )) {
                                             nowPageOnChanged(Album)
                                         }
                                     }
@@ -537,12 +571,27 @@ fun NowPlaying(
                                                 sharedContentState = rememberSharedContentState(
                                                     key = ShareAlbumKey
                                                 ),
-                                                visible = isVisible
+                                                visible = isVisible,
+                                                boundsTransform = SharedBounds
                                             ),
                                             albumUrlLambda = {
                                                 thisMusicPlaying.value?.thumb
                                             },
-                                            musicPlayingLambda = { thisMusicPlaying.value }) {
+                                            musicPlayingLambda = { thisMusicPlaying.value },
+                                            titleModifier = Modifier.sharedElementWithCallerManagedVisibility(
+                                                sharedContentState = rememberSharedContentState(
+                                                    key = ShareTitleKey
+                                                ),
+                                                visible = isVisible,
+                                                boundsTransform = SharedBounds
+                                            ),
+                                            actionsModifier = Modifier.sharedElementWithCallerManagedVisibility(
+                                                sharedContentState = rememberSharedContentState(
+                                                    key = ShareActionsKey
+                                                ),
+                                                visible = isVisible,
+                                                boundsTransform = SharedBounds
+                                            )) {
                                             nowPageOnChanged(Album)
                                         }
                                         YosWrapper {
@@ -739,6 +788,60 @@ fun NowPlaying(
 
         }
     }
+
+@Composable
+private fun FullBleedArt(
+    modifier: Modifier,
+    albumUrl: () -> Uri?,
+    onAlbumPage: () -> Boolean
+) {
+    val density = LocalDensity.current
+    val metrics = LocalContext.current.resources.displayMetrics
+    val topInset = WindowInsets.statusBars.getTop(density) + with(density) { 22.dp.roundToPx() }
+    val fade = animateFloatAsState(
+        targetValue = if (onAlbumPage()) 1f else 0f,
+        animationSpec = tween(durationMillis = 520, easing = PageEasing)
+    )
+    Box(
+        Modifier
+            .offset { IntOffset(0, -topInset) }
+            .then(modifier)
+            .size(
+                width = with(density) { metrics.widthPixels.toDp() },
+                height = with(density) { (metrics.heightPixels * 0.56f).toDp() }
+            )
+            .clip(RoundedCornerShape((5f * (1f - fade.value)).dp))
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .drawWithContent {
+                drawContent()
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0f to Color.Black,
+                        0.78f to Color.Black,
+                        1f to Color.Black.copy(alpha = 1f - fade.value)
+                    ),
+                    blendMode = BlendMode.DstIn
+                )
+            }
+    ) {
+        FullBleedCover(
+            dataLambda = albumUrl,
+            modifier = Modifier.fillMaxSize()
+        )
+        Spacer(
+            Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.2f)
+                .graphicsLayer { alpha = fade.value }
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color(0x59000000),
+                        1f to Color.Transparent
+                    )
+                )
+        )
+    }
+}
 
 @Composable
 private fun ColumnScope.Album(
@@ -1347,6 +1450,8 @@ private fun PlayingBar(
     modifier: Modifier,
     albumUrlLambda: () -> Uri?,
     musicPlayingLambda: () -> YosMediaItem?,
+    titleModifier: Modifier = Modifier,
+    actionsModifier: Modifier = Modifier,
     onAlbumClick: () -> Unit
 ) = YosWrapper {
     Row(
@@ -1374,6 +1479,7 @@ private fun PlayingBar(
                 .fillMaxWidth()
                 .weight(1f)
                 .padding(start = 12.dp, end = 15.dp)
+                .then(titleModifier)
         ) {
             Text(
                 text = musicPlayingLambda()?.title ?: defaultTitle,/*
@@ -1396,7 +1502,9 @@ private fun PlayingBar(
         }
 
         YosWrapper {
-            ActionButtonsRow(musicPlayingLambda)
+            Box(actionsModifier) {
+                ActionButtonsRow(musicPlayingLambda)
+            }
         }
     }
 
