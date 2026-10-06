@@ -1,5 +1,6 @@
 package yos.music.player.data.libraries
 
+import android.os.Build
 import androidx.compose.runtime.Stable
 import com.funny.data_saver.core.mutableDataSaverStateOf
 import yos.music.player.data.SettingsSaver
@@ -119,7 +120,7 @@ object SettingsLibrary {
     var LyricBlurEffect by mutableDataSaverStateOf(
         dataSaverInterface = SettingsSaver,
         key = "settings_performance_lyric_blur_effect",
-        initialValue = false
+        initialValue = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     )
 
     /**
