@@ -1,5 +1,6 @@
 package yos.music.player.code.utils.lrc
 
+import android.annotation.SuppressLint
 import android.os.Build
 import com.github.promeg.pinyinhelper.Pinyin
 
@@ -144,8 +145,9 @@ object YosTransliterator {
 
 /**
  * The platform transliterator. It lives in its own object so devices below API 29 never
- * load a class that refers to android.icu.
+ * load a class that refers to android.icu, and callers only use it when icuAvailable() is true.
  */
+@SuppressLint("NewApi")
 private object IcuEngine {
     // "Any-Latin" reads every script ICU knows, "Latin-ASCII" then drops tone marks and
     // other diacritics so "wǒ" becomes "wo".
