@@ -216,9 +216,9 @@ fun YosFloatingLight(
                         fun shade(alpha: Float) = Color.Black.copy((alpha * boost).coerceAtMost(0.8f))
                         drawRect(
                             brush = Brush.verticalGradient(
-                                0f to shade(0.34f),
-                                0.55f to shade(0.48f),
-                                1f to shade(0.64f)
+                                0f to Color.Black.copy(0.75f),
+                                0.22f to shade(0.30f),
+                                1f to shade(0.42f)
                             ),
                             alpha = scrim.value
                         )

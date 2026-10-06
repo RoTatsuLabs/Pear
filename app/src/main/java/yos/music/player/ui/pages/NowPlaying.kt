@@ -87,6 +87,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -289,8 +290,23 @@ fun NowPlaying(
             if (cover.value > 0f) {
                 Box(
                     Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = cover.value }
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.56f)
+                        .graphicsLayer {
+                            alpha = cover.value
+                            compositingStrategy = CompositingStrategy.Offscreen
+                        }
+                        .drawWithContent {
+                            drawContent()
+                            drawRect(
+                                brush = Brush.verticalGradient(
+                                    0f to Color.Black,
+                                    0.6f to Color.Black,
+                                    1f to Color.Transparent
+                                ),
+                                blendMode = BlendMode.DstIn
+                            )
+                        }
                 ) {
                     FullBleedCover(
                         dataLambda = { thisMusicPlaying.value?.thumb },
@@ -298,13 +314,12 @@ fun NowPlaying(
                     )
                     Spacer(
                         Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .fillMaxHeight(0.2f)
                             .background(
                                 Brush.verticalGradient(
-                                    0f to Color(0x66000000),
-                                    0.25f to Color.Transparent,
-                                    0.5f to Color.Transparent,
-                                    1f to Color(0xCC000000)
+                                    0f to Color(0x59000000),
+                                    1f to Color.Transparent
                                 )
                             )
                     )

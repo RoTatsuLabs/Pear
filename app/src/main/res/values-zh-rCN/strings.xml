@@ -98,8 +98,8 @@
     <string name="page_library_playlists_music_total">%d 首歌曲</string>
     <string name="settings_performance_ui_nowplaying_background_effect">背景动态效果</string>
     <string name="settings_performance_ui_nowplaying_background_effect_desc">播放页面背景的动态效果，可能导致性能问题。</string>
-    <string name="settings_performance_ui_full_screen_cover">全屏专辑封面</string>
-    <string name="settings_performance_ui_full_screen_cover_desc">在播放页面和专辑页面中，将专辑封面铺满整个屏幕。</string>
+    <string name="settings_performance_ui_full_screen_cover">静态全屏专辑封面</string>
+    <string name="settings_performance_ui_full_screen_cover_desc">在播放页面顶部将专辑封面铺满屏幕宽度，并渐变融入模糊背景。</string>
     <string name="page_library_playlists_add_title">新建播放列表…</string>
     <string name="page_library_playlists_fav_title">喜爱的歌曲</string>
     <string name="settings_performance_notification_title">媒体通知</string>

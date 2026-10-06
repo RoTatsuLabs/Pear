@@ -98,8 +98,8 @@
     <string name="page_library_playlists_music_total">%d Songs</string>
     <string name="settings_performance_ui_nowplaying_background_effect">Background Dynamic Effect</string>
     <string name="settings_performance_ui_nowplaying_background_effect_desc">Dynamic effect of the playback page background, which may cause performance issues.</string>
-    <string name="settings_performance_ui_full_screen_cover">Full-Screen Cover</string>
-    <string name="settings_performance_ui_full_screen_cover_desc">Show the album cover edge to edge on the playback page and the album page.</string>
+    <string name="settings_performance_ui_full_screen_cover">Static Full-Screen Album Art</string>
+    <string name="settings_performance_ui_full_screen_cover_desc">Show the album cover edge to edge at the top of the playback page, fading into the blurred background.</string>
     <string name="page_library_playlists_add_title">Create New Playlist…</string>
     <string name="page_library_playlists_fav_title">Favorite Songs</string>
     <string name="settings_performance_notification_title">Media Notifications</string>
