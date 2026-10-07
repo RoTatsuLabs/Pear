@@ -5,6 +5,7 @@ All notable changes to Pear are listed here, newest first.
 ## [Unreleased]
 
 ### Changes
+* Keep the full-width album cover attached to the top of the album page when you pull the list past its start, instead of leaving a black gap above it.
 * Use a translate icon for the lyrics translation button, both when it is off and when it is on.
 * Move between the playback page and the lyrics with one connected transition. The cover shrinks into the small cover, the title and buttons slide up with it, and the backdrop fades. It works in both directions, with Static Full-Screen Album Art on or off.
 * Hide the small drag handle on the playback page while Static Full-Screen Album Art is on. It still shows on the lyrics page.

@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -152,6 +153,38 @@ fun AlbumInfo(
             val scope = rememberCoroutineScope()
             val fullScreenCover = SettingsLibrary.FullScreenCover
 
+            if (fullScreenCover) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .graphicsLayer {
+                            translationY = if (state.firstVisibleItemIndex == 0) {
+                                -state.firstVisibleItemScrollOffset.toFloat()
+                            } else {
+                                -size.height
+                            }
+                        }
+                ) {
+                    FullBleedCover(
+                        dataLambda = { songs.getOrNull(0)?.thumb },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    Spacer(
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color(0x66000000),
+                                    0.3f to Color.Transparent,
+                                    0.65f to Color.Transparent,
+                                    1f to MaterialTheme.colorScheme.background
+                                )
+                            )
+                    )
+                }
+            }
+
             LazyColumn(
                 state = state,
                 modifier = Modifier
@@ -162,28 +195,11 @@ fun AlbumInfo(
             ) {
                 if (fullScreenCover) {
                     item("AlbumCover") {
-                        Box(
+                        Spacer(
                             Modifier
                                 .fillMaxWidth()
                                 .aspectRatio(1f)
-                        ) {
-                            FullBleedCover(
-                                dataLambda = { songs.getOrNull(0)?.thumb },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                            Spacer(
-                                Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            0f to Color(0x66000000),
-                                            0.3f to Color.Transparent,
-                                            0.65f to Color.Transparent,
-                                            1f to MaterialTheme.colorScheme.background
-                                        )
-                                    )
-                            )
-                        }
+                        )
                     }
                 }
 
