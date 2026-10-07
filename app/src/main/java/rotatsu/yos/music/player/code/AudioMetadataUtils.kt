@@ -40,6 +40,30 @@ object AudioMetadataUtils {
         return null
     }
 
+    /**
+     * Reads lyrics stored inside the song's tags, such as ID3 USLT, MP4 lyrics or a Vorbis
+     * LYRICS comment. The text may be LRC or TTML. Returns null when the song has none.
+     */
+    fun loadEmbeddedLyrics(songPath: String?): String? {
+        if (songPath == null) return null
+        return try {
+            ParcelFileDescriptor.open(File(songPath), ParcelFileDescriptor.MODE_READ_ONLY).use { fd ->
+                val map = TagLib.getMetadata(fd.dup().detachFd(), false)?.propertyMap
+                    ?: return@use null
+                val key = map.keys.firstOrNull { it.equals("LYRICS", ignoreCase = true) }
+                    ?: map.keys.firstOrNull {
+                        it.startsWith("LYRICS", ignoreCase = true) ||
+                            it.replace(" ", "").equals("UNSYNCEDLYRICS", ignoreCase = true)
+                    }
+                key?.let { map[it] }
+                    ?.firstOrNull { it.isNotBlank() }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     fun getQualityInfos(filePath: String): Pair<Int, Int> {
         val songFile = File(filePath)
         var bitrate: Int

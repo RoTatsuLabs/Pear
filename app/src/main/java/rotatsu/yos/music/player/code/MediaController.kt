@@ -54,6 +54,7 @@ import rotatsu.yos.music.player.code.MediaController.mediaSession
 import rotatsu.yos.music.player.code.MediaController.musicPlaying
 import rotatsu.yos.music.player.code.MediaController.onServiceRunning
 import rotatsu.yos.music.player.code.MediaController.onServiceStopped
+import rotatsu.yos.music.player.code.utils.lrc.YosLyrics
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricsFactory
 import rotatsu.yos.music.player.code.utils.lrc.YosTransliterator
 import rotatsu.yos.music.player.code.utils.player.FadeExo
@@ -513,11 +514,14 @@ class YosPlaybackService : MediaSessionService() {
 
                         val thisPath = path?.path
 
-                        // TTML or LRC next to the song, whichever exists.
-                        val lyricsText =
-                            AudioMetadataUtils.loadLyricsFile(this@YosPlaybackService, thisPath)
-                        val parsed =
-                            YosLyricsFactory.parse(lyricsText, Locale.getDefault().language)
+                        // A TTML or LRC file next to the song wins, then lyrics in the tags.
+                        val language = Locale.getDefault().language
+                        val parsed = sequenceOf(
+                            { AudioMetadataUtils.loadLyricsFile(this@YosPlaybackService, thisPath) },
+                            { AudioMetadataUtils.loadEmbeddedLyrics(thisPath) }
+                        ).map { YosLyricsFactory.parse(it(), language) }
+                            .firstOrNull { it.entries.isNotEmpty() }
+                            ?: YosLyrics.EMPTY
                         YosLyricsFactory.publish(parsed)
 
                         // Automatic transliteration can take a moment, because the platform

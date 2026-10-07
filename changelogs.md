@@ -5,6 +5,7 @@ All notable changes to Pear are listed here, newest first.
 ## [Unreleased]
 
 ### Changes
+* Show lyrics stored inside the song's tags when there is no TTML or LRC file next to it. LRC and TTML text in the lyrics tag of MP3, M4A, FLAC and Ogg files is read, and a file next to the song still wins.
 * Change the app ID and package name to rotatsu.yos.music.player. Android treats this as a new app, so it installs next to the old one and starts with empty settings and library data.
 * Keep the full-width album cover attached to the top of the album page when you pull the list past its start, instead of leaving a black gap above it.
 * Use a translate icon for the lyrics translation button, both when it is off and when it is on.
