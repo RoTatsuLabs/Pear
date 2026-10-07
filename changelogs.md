@@ -28,6 +28,8 @@ All notable changes to Pear are listed here, newest first.
 * Only record the page list for the blurred title bar when the bar blur setting is on.
 
 ### Fixes
+* Keep Arabic lyrics with word timing in one piece while they play. The letters used to fall apart, join in the wrong shape and land out of order, and now each word keeps its joined letters and the highlight sweeps from right to left.
+* Stop joined letters from showing lighter spots where they overlap in Arabic lyrics that are not the current line.
 * Stop the media scan from wiping the saved playlist when audio permission is denied.
 * Skip folders with no songs during the library scan instead of crashing on them.
 * Skip the queue restore at startup when no saved queue exists, instead of failing silently.

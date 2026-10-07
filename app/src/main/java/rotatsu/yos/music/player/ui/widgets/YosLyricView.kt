@@ -62,14 +62,18 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -83,6 +87,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.buildAnnotatedString
@@ -107,6 +112,8 @@ import rotatsu.yos.music.player.code.utils.lrc.YosLyricCredit
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricGlow
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricStack
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricTiming
+import rotatsu.yos.music.player.code.utils.lrc.YosTextShaping
+import rotatsu.yos.music.player.code.utils.lrc.YosWordTiming
 import rotatsu.yos.music.player.code.utils.lrc.YosSyllables
 import rotatsu.yos.music.player.code.utils.lrc.YosMediaEvent
 import rotatsu.yos.music.player.code.utils.lrc.YosUIConfig
@@ -1216,12 +1223,15 @@ fun LazyItemScope.LyricItem(
                                         }
                                     ) { parentConstraints, measureResult ->
 
+                                        val shaped =
+                                            YosTextShaping.needsShapedDraw(measureResult.layoutInput.text)
 
                                         if (isNotOneByOne.value) {
                                             return@Line onDrawWithContent {
-                                                drawText(
-                                                    textLayoutResult = measureResult,
-                                                    color = lerp(focusedColor, unfocusedColor, pastFade.value)
+                                                drawLineText(
+                                                    measureResult,
+                                                    lerp(focusedColor, unfocusedColor, pastFade.value),
+                                                    shaped
                                                 )
                                             }
                                         }
@@ -1246,20 +1256,18 @@ fun LazyItemScope.LyricItem(
                                             if (!showHighLight.value) {
                                                 // 是逐字 但不是当前行，且还没唱到：灰色
                                                 return@Line onDrawWithContent {
-                                                    drawText(
-                                                        textLayoutResult = measureResult,
-                                                        color = unfocusedColor
-                                                    )
+                                                    drawLineText(measureResult, unfocusedColor, shaped)
                                                     drawTransliterationFlat(romans, unfocusedColor)
                                                 }
                                             }
                                             if (fade >= 1f) {
                                                 // 已唱完，且已经从白色淡回灰色
                                                 return@Line onDrawWithContent {
-                                                    drawText(
-                                                        textLayoutResult = measureResult,
-                                                        color = unfocusedColor,
-                                                        topLeft = Offset(0F, -4F)
+                                                    drawLineText(
+                                                        measureResult,
+                                                        unfocusedColor,
+                                                        shaped,
+                                                        Offset(0F, -4F)
                                                     )
                                                     drawTransliterationFlat(romans, unfocusedColor)
                                                 }
@@ -1272,6 +1280,27 @@ fun LazyItemScope.LyricItem(
                                         var sum = 0
 
                                         val finishedColor = lerp(focusedColor, unfocusedColor, fade)
+
+                                        if (shaped) {
+                                            val shapedWords =
+                                                layoutShapedWords(timeline, measureResult, totalChars)
+                                            return@Line onDrawBehind {
+                                                val time = liveTime.intValue.toFloat()
+                                                drawShapedSweep(
+                                                    measureResult,
+                                                    shapedWords,
+                                                    time,
+                                                    finishedColor,
+                                                    unfocusedColor
+                                                )
+                                                drawTransliterationProgress(
+                                                    items = romans,
+                                                    time = time,
+                                                    finishedColor = finishedColor,
+                                                    unfocusedColor = unfocusedColor
+                                                )
+                                            }
+                                        }
 
                                         timeline.fastForEach { word ->
                                             val thisWord = word.text
@@ -1520,19 +1549,23 @@ private val GlowRoom = 12.dp
 private const val GlowAlpha = 0.62f
 private const val GlowSlot = "glow"
 
-/** A left to right sweep: [finished] before [percent], [unfocused] after, blended over [softness]. */
+/** A sweep from [startX] to [endX]: [finished] before [percent], [unfocused] after, blended over [softness]. */
 private fun sweepBrush(
     percent: Float,
     softness: Float,
     finished: Color,
-    unfocused: Color
+    unfocused: Color,
+    startX: Float = 0f,
+    endX: Float = Float.POSITIVE_INFINITY
 ): Brush {
     val beforeColor = if (percent <= -0.5f) unfocused else finished
     val afterColor = if (percent >= 1f) finished else unfocused
     return Brush.horizontalGradient(
         0f to beforeColor,
         (percent - softness).coerceIn(0f, 1f) to beforeColor,
-        (percent + softness).coerceIn(0f, 1f) to afterColor
+        (percent + softness).coerceIn(0f, 1f) to afterColor,
+        startX = startX,
+        endX = endX
     )
 }
 
@@ -1706,6 +1739,123 @@ private class GlowChar(
     val index: Int,
     val box: Rect
 )
+
+private class ShapedChar(val box: Rect, val start: Float, val end: Float, val rtl: Boolean, val ink: Boolean)
+
+private class ShapedWord(val start: Float, val end: Float, val box: Rect, val chars: List<ShapedChar>)
+
+/** Boxes of every sung segment, taken from the one layout of the whole line. */
+private fun layoutShapedWords(
+    timeline: List<YosWordTiming>,
+    layout: TextLayoutResult,
+    totalChars: Int
+): List<ShapedWord> {
+    val result = ArrayList<ShapedWord>(timeline.size)
+    var sum = 0
+    timeline.fastForEach { word ->
+        val chars = ArrayList<ShapedChar>(word.text.length)
+        word.text.forEachIndexed { i, c ->
+            val at = (sum + i).coerceAtMost(totalChars - 1).coerceAtLeast(0)
+            chars += ShapedChar(
+                box = layout.getBoundingBox(at),
+                start = word.charStart(i),
+                end = word.charEnd(i),
+                rtl = layout.getBidiRunDirection(at) == ResolvedTextDirection.Rtl,
+                ink = !c.isWhitespace()
+            )
+        }
+        sum += word.text.length
+        if (chars.isEmpty()) return@fastForEach
+        val box = Rect(
+            left = chars.minOf { it.box.left },
+            top = chars.minOf { it.box.top },
+            right = chars.maxOf { it.box.right },
+            bottom = chars.maxOf { it.box.bottom }
+        )
+        result += ShapedWord(word.start, word.end, box, chars)
+    }
+    return result
+}
+
+/**
+ * Sweeps a line whose letters join. The whole line is drawn once as a solid mask, each word
+ * clipped and lifted on its own, then every character box is coloured over the mask. The
+ * translucent colour lands once per pixel, so joins do not show as brighter spots.
+ */
+private fun DrawScope.drawShapedSweep(
+    layout: TextLayoutResult,
+    words: List<ShapedWord>,
+    time: Float,
+    finishedColor: Color,
+    unfocusedColor: Color
+) {
+    val pad = 24f
+    drawIntoCanvas { canvas ->
+        canvas.saveLayer(Rect(-pad, -pad, size.width + pad, size.height + pad), Paint())
+        words.fastForEach { word ->
+            val lift = 4 * easing.transform(YosLyricTiming.progress(time, word.start, word.end))
+            translate(0f, -lift) {
+                clipRect(word.box.left, word.box.top, word.box.right, word.box.bottom) {
+                    drawText(textLayoutResult = layout, color = Color.White)
+                }
+            }
+        }
+        words.fastForEach { word ->
+            val lift = 4 * easing.transform(YosLyricTiming.progress(time, word.start, word.end))
+            translate(0f, -lift) {
+                word.chars.fastForEach { c ->
+                    if (!c.ink) return@fastForEach
+                    val brush = sweepBrush(
+                        YosLyricTiming.rawProgress(time, c.start, c.end),
+                        0.3f,
+                        finishedColor,
+                        unfocusedColor,
+                        startX = if (c.rtl) c.box.right else c.box.left,
+                        endX = if (c.rtl) c.box.left else c.box.right
+                    )
+                    drawRect(
+                        brush = brush,
+                        topLeft = c.box.topLeft,
+                        size = c.box.size,
+                        blendMode = BlendMode.SrcIn
+                    )
+                }
+            }
+        }
+        canvas.restore()
+    }
+}
+
+/**
+ * Draws a line in one colour. A line that joins letters is drawn opaque into a layer that
+ * carries the alpha, because overlapping letter ends would otherwise show brighter.
+ */
+private fun DrawScope.drawLineText(
+    layout: TextLayoutResult,
+    color: Color,
+    shaped: Boolean,
+    topLeft: Offset = Offset.Zero
+) {
+    if (!shaped || color.alpha >= 0.99f) {
+        drawText(textLayoutResult = layout, color = color, topLeft = topLeft)
+        return
+    }
+    val pad = 24f
+    drawIntoCanvas { canvas ->
+        val paint = Paint().apply { alpha = color.alpha }
+        canvas.saveLayer(
+            Rect(
+                topLeft.x - pad,
+                topLeft.y - pad,
+                topLeft.x + layout.size.width + pad,
+                topLeft.y + layout.size.height + pad
+            ),
+            paint
+        )
+        drawText(textLayoutResult = layout, color = color.copy(alpha = 1f), topLeft = topLeft)
+        canvas.restore()
+    }
+}
 
 @Stable
 private data class DrawWord(
