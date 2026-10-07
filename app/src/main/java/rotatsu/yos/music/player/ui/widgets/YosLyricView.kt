@@ -881,7 +881,12 @@ fun LazyItemScope.LyricItem(
 ) {
     println("重组：歌词 $mainLyric")
 
-    val viewAlign = if (otherSide) Alignment.End else Alignment.Start
+    // A right to left line takes the side its script reads from, so it hugs the right edge.
+    val rtlLine = remember(mainLyric) {
+        YosTextShaping.isRtl(mainLyric.joinToString("") { it.second })
+    }
+    val atEnd = otherSide != rtlLine
+    val viewAlign = if (atEnd) Alignment.End else Alignment.Start
 
     val focusedColor = Color(0xFFFFFFFF)
     val unfocusedColor = Color.White.copy(alpha = YosLyricStack.UNSUNG_ALPHA)
@@ -902,8 +907,15 @@ fun LazyItemScope.LyricItem(
         transliteration?.takeIf { list -> list.any { it.isNotBlank() } }
     }
     val romanPerWord = romanLine != null && !isNotOneByOne.value
-    val lineStyle = remember(otherSide, romanPerWord) {
-        val base = if (otherSide) MainTextStyle.copy(textAlign = TextAlign.End) else MainTextStyle
+    val lineStyle = remember(otherSide, romanPerWord, rtlLine) {
+        val base = when {
+            rtlLine -> MainTextStyle.copy(
+                textAlign = if (otherSide) TextAlign.Left else TextAlign.Right
+            )
+
+            otherSide -> MainTextStyle.copy(textAlign = TextAlign.End)
+            else -> MainTextStyle
+        }
         if (romanPerWord) {
             base.copy(
                 lineHeight = (base.lineHeight.value + TransliterationBand.value).sp,
@@ -951,7 +963,7 @@ fun LazyItemScope.LyricItem(
                 .padding(horizontal = 9.dp),
             horizontalAlignment = viewAlign
         ) {
-            val otherSideAnimate = if (otherSide) {
+            val otherSideAnimate = if (atEnd) {
                 TransformOrigin(1f, 0.25f)
             } else {
                 TransformOrigin(0f, 0.25f)
@@ -959,7 +971,7 @@ fun LazyItemScope.LyricItem(
             //println("重组：倒计时 "+ mainLyric.isBlank()+ " "+ isCurrentLambda() + " " + (progress() != 0f))
 
             val otherSideTransformOrigin =
-                if (otherSide) TransformOrigin(
+                if (atEnd) TransformOrigin(
                     1f,
                     0.5f
                 ) else TransformOrigin(
@@ -998,7 +1010,7 @@ fun LazyItemScope.LyricItem(
                 }
             }*/
 
-            val cardPadding = if (otherSide) {
+            val cardPadding = if (atEnd) {
                 Modifier.padding(start = 28.dp)
             } else {
                 Modifier.padding(end = 28.dp)
@@ -1097,9 +1109,6 @@ fun LazyItemScope.LyricItem(
                                     .fillMaxWidth(),
                                 horizontalAlignment = viewAlign
                             ) {
-                                val rtlLine = remember(mainLyric) {
-                                    YosTextShaping.isRtl(mainLyric.joinToString("") { it.second })
-                                }
                                 val textAlign = when {
                                     rtlLine -> if (otherSide) TextAlign.Left else TextAlign.Right
                                     otherSide -> TextAlign.End
