@@ -703,6 +703,7 @@ private fun LazyItemScope.Line(
         ) {
             SubcomposeLayout(modifier = modifier) { constraints ->
 
+                val rtl = YosTextShaping.isRtl(styledString)
                 val measureResult = measurer.measure(
                     text = styledString,
                     style = style,
@@ -710,18 +711,31 @@ private fun LazyItemScope.Line(
                         minWidth = 0,
                         maxWidth = constraints.maxWidth,
                     ),
-                    layoutDirection = LayoutDirection.Ltr
+                    layoutDirection = if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
                 )
 
                 val height = (style.lineHeight * measureResult.lineCount)
 
-                val width = runCatching {
-                    (0 until measureResult.lineCount).maxOf {
-                        measureResult.getBoundingBox(
-                            measureResult.getLineEnd(it, visibleEnd = true) - 1
-                        ).right
-                    }
-                }.getOrDefault(constraints.maxWidth.toFloat())
+                // The last character is not the right edge of a line that has right to left
+                // letters in it, so such a line is measured over all of its characters.
+                val width = when {
+                    rtl -> constraints.maxWidth.toFloat()
+                    YosTextShaping.needsShapedDraw(styledString) -> runCatching {
+                        (0 until measureResult.lineCount).maxOf { line ->
+                            (measureResult.getLineStart(line) until
+                                    measureResult.getLineEnd(line, visibleEnd = true))
+                                .maxOf { measureResult.getBoundingBox(it).right }
+                        }
+                    }.getOrDefault(constraints.maxWidth.toFloat())
+
+                    else -> runCatching {
+                        (0 until measureResult.lineCount).maxOf {
+                            measureResult.getBoundingBox(
+                                measureResult.getLineEnd(it, visibleEnd = true) - 1
+                            ).right
+                        }
+                    }.getOrDefault(constraints.maxWidth.toFloat())
+                }
 
                 val content = subcompose(lines) {
                     Spacer(
@@ -1083,7 +1097,14 @@ fun LazyItemScope.LyricItem(
                                     .fillMaxWidth(),
                                 horizontalAlignment = viewAlign
                             ) {
-                                val textAlign = if (otherSide) TextAlign.End else TextAlign.Start
+                                val rtlLine = remember(mainLyric) {
+                                    YosTextShaping.isRtl(mainLyric.joinToString("") { it.second })
+                                }
+                                val textAlign = when {
+                                    rtlLine -> if (otherSide) TextAlign.Left else TextAlign.Right
+                                    otherSide -> TextAlign.End
+                                    else -> TextAlign.Start
+                                }
 
                                 YosWrapper {
                                     val thisAlphaAnimated = animateFloatAsState(
@@ -1639,10 +1660,12 @@ private fun layoutTransliteration(
         val lastOnLine = (measureResult.getLineEnd(line, visibleEnd = true) - 1).coerceAtLeast(from)
         val startBox = measureResult.getBoundingBox(from)
         val endBox = measureResult.getBoundingBox(minOf(to, lastOnLine))
+        val left = minOf(startBox.left, endBox.left)
+        val right = maxOf(startBox.right, endBox.right)
         val layout = measure(roman)
         items += RomanItem(
             layout = layout,
-            x = startBox.left + (endBox.right - startBox.left - layout.size.width) / 2f,
+            x = left + (right - left - layout.size.width) / 2f,
             top = startBox.top,
             line = line,
             start = word.start,
@@ -1652,7 +1675,7 @@ private fun layoutTransliteration(
 
     val gap = 6f
     val width = measureResult.size.width.toFloat()
-    items.groupBy { it.line }.values.forEach { row ->
+    items.groupBy { it.line }.values.map { row -> row.sortedBy { it.x } }.forEach { row ->
         row.forEachIndexed { i, item ->
             if (i == 0) {
                 item.x = item.x.coerceAtLeast(0f)

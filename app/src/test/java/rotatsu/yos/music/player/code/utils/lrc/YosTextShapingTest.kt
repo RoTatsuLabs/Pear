@@ -27,4 +27,15 @@ class YosTextShapingTest {
         assertFalse(YosTextShaping.needsShapedDraw("привет"))
         assertFalse(YosTextShaping.needsShapedDraw(""))
     }
+
+    @Test
+    fun theFirstLetterWithADirectionDecidesTheLine() {
+        assertTrue(YosTextShaping.isRtl("يا ليل يا ليلي"))
+        assertTrue(YosTextShaping.isRtl("123 שלום"))
+        assertTrue(YosTextShaping.isRtl("- حبيب hello"))
+        assertFalse(YosTextShaping.isRtl("hello حبيب"))
+        assertFalse(YosTextShaping.isRtl("你好"))
+        assertFalse(YosTextShaping.isRtl("123 ..."))
+        assertFalse(YosTextShaping.isRtl(""))
+    }
 }
