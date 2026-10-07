@@ -120,6 +120,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastMap
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.Player.REPEAT_MODE_ALL
@@ -1552,11 +1553,12 @@ fun RowScope.AirPlay() {
                     }
                 }
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                contextCompose.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
-            } else {
-                contextCompose.registerReceiver(receiver, filter)
-            }
+            ContextCompat.registerReceiver(
+                contextCompose,
+                receiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
 
             if (ActivityCompat.checkSelfPermission(
                     contextCompose,
