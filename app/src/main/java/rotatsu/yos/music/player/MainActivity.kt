@@ -1065,7 +1065,9 @@ class MainActivity : BaseActivity() {
             }
 
             if (permissions.entries.all { it.value }) {
-                sendBroadcast(Intent("rotatsu.yos.music.player.BLUETOOTH_STATUS_REFRESH"))
+                sendBroadcast(
+                    Intent("rotatsu.yos.music.player.BLUETOOTH_STATUS_REFRESH").setPackage(packageName)
+                )
             }
         }
 
