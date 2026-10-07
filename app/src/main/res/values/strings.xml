@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">Flamingo</string>
+    <string name="app_name" translatable="false">Pear</string>
     <string name="permission_grant_title">Media Read Permission</string>
     <string name="permission_grant_subtitle">Permission Request</string>
     <string name="permission_grant_button_positive">OK</string>
@@ -30,7 +30,7 @@
     <string name="settings_extend_statusbarlyric_desc">Use the status bar lyrics of Lyric Getter API.</string>
     <string name="settings_others">Others</string>
     <string name="settings_others_about">About</string>
-    <string name="settings_others_about_desc">About Flamingo.</string>
+    <string name="settings_others_about_desc">About Pear.</string>
     <string name="settings_audio_fade_in_out_desc">Volume fades in / out when playing / pausing.</string>
     <string name="tip_no_lyrics">Lyrics not ready</string>
     <string name="settings_others_statusbarlyric_basic_switch">Master Switch</string>
@@ -41,8 +41,8 @@
     <string name="settings_others_statusbarlyric_debug_clear_lyric">Clear Current Lyrics</string>
     <string name="settings_others_statusbarlyric_debug_clear_lyric_desc">Manually clear the current lyrics.</string>
     <string name="settings_others_statusbarlyric_basic_status">Hook Status</string>
-    <string name="settings_others_statusbarlyric_basic_status_enabled">Flamingo is in Hook status.</string>
-    <string name="settings_others_statusbarlyric_basic_status_disabled">Flamingo isn\'t in Hook status.</string>
+    <string name="settings_others_statusbarlyric_basic_status_enabled">Pear is in Hook status.</string>
+    <string name="settings_others_statusbarlyric_basic_status_disabled">Pear isn\'t in Hook status.</string>
     <string name="tip_scan_finished">Scan finished, total %d songs.</string>
     <string name="settings_performance">Appearance</string>
     <string name="settings_audio_exoplayer_decode_hardware_audio_track_playback_params">Hardware-level Audio Speed Adjustment</string>
