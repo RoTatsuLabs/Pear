@@ -46,16 +46,41 @@ data class YosLyrics(
 ) {
     val isEmpty: Boolean get() = entries.isEmpty()
 
+    /**
+     * Returns these lyrics without the translations that only repeat their own line, ignoring
+     * case, spacing and punctuation.
+     */
+    fun withoutRepeatedTranslations(): YosLyrics {
+        var changed = false
+        val trimmed = entries.map { line ->
+            if (!carriesTranslation(line)) return@map line
+            val sung = comparable(segmentsOf(line).joinToString("") { it.second })
+            val translated = comparable(line.last().second)
+            if (sung.isNotEmpty() && sung == translated) {
+                changed = true
+                line.dropLast(2)
+            } else {
+                line
+            }
+        }
+        return if (changed) copy(entries = trimmed) else this
+    }
+
     companion object {
         val EMPTY = YosLyrics(null, emptyList(), emptyList(), emptyList(), emptyList())
 
         /** The lyric segments of a line: its pairs without the start and translation slots. */
         fun segmentsOf(line: List<Pair<Float, String>>): List<Pair<Float, String>> {
             if (line.size < 2) return emptyList()
-            val hasTranslation = line.size >= 5 && line[line.size - 1].second.isNotEmpty() &&
-                    line[line.size - 2].second.isEmpty() && line[line.size - 3].second.isEmpty()
-            val end = line.size - if (hasTranslation) 3 else 1
+            val end = line.size - if (carriesTranslation(line)) 3 else 1
             return line.subList(1, end)
         }
+
+        private fun carriesTranslation(line: List<Pair<Float, String>>): Boolean =
+            line.size >= 5 && line[line.size - 1].second.isNotEmpty() &&
+                    line[line.size - 2].second.isEmpty() && line[line.size - 3].second.isEmpty()
+
+        private fun comparable(text: String): String =
+            text.filter { it.isLetterOrDigit() }.lowercase()
     }
 }

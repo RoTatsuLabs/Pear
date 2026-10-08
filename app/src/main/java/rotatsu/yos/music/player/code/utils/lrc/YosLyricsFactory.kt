@@ -19,11 +19,12 @@ object YosLyricsFactory {
      */
     fun parse(content: String?, preferredLanguage: String? = null): YosLyrics {
         if (content.isNullOrBlank()) return YosLyrics.EMPTY
-        return if (looksLikeTtml(content)) {
+        val parsed = if (looksLikeTtml(content)) {
             YosTtmlFactory(preferredLanguage).parse(content)
         } else {
             YosLrcFactory().parse(content)
         }
+        return parsed.withoutRepeatedTranslations()
     }
 
     fun looksLikeTtml(content: String): Boolean {

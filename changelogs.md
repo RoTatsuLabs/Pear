@@ -5,6 +5,7 @@ All notable changes to Pear are listed here, newest first.
 ## [Unreleased]
 
 ### Changes
+* Make the translate button larger.
 * Redraw the translate button as two speech bubbles in both its on and off looks, to match Apple Music.
 * Rework the README with a centered header, a short feature list and the build steps.
 * Rename the app to Pear. The launcher label, the settings text and the media notification channel no longer say Flamingo.
@@ -31,6 +32,7 @@ All notable changes to Pear are listed here, newest first.
 * Only record the page list for the blurred title bar when the bar blur setting is on.
 
 ### Fixes
+* Skip a translation that only repeats its own lyric line, so no duplicate line shows and the translate button hides when nothing is left to translate.
 * Show the translate button's on look as the two speech bubbles cut out of a light square. It used to turn into a plain square with nothing in it.
 * Stop showing a transliteration over lyric lines that are already in Latin letters, even when the TTML file carries one.
 * Hide the translate button when the lyrics carry no translation, instead of showing a button that does nothing.

@@ -206,4 +206,23 @@ class YosLyricsParsingTest {
         assertTrue(YosTtmlFactory().parse("<tt><body><p begin=\"1\"").isEmpty)
         assertTrue(YosTtmlFactory().parse("<html></html>").isEmpty)
     }
+
+    @Test
+    fun translationsThatRepeatTheLineAreDropped() {
+        val same = listOf(
+            1000f to "", 2000f to "Finally happy now,", 1000f to "", 1000f to "", 1000f to "finally happy now"
+        )
+        val other = listOf(
+            3000f to "", 4000f to "안녕", 3000f to "", 3000f to "", 3000f to "Hello"
+        )
+        val lyrics = YosLyrics(
+            YosLyricFormat.TTML, listOf(same, other), listOf(false, false), listOf(null, null), emptyList()
+        )
+
+        val trimmed = lyrics.withoutRepeatedTranslations()
+
+        assertEquals(same.dropLast(2), trimmed.entries[0])
+        assertEquals(other, trimmed.entries[1])
+        assertTrue(lyrics.withoutRepeatedTranslations().withoutRepeatedTranslations() == trimmed)
+    }
 }
