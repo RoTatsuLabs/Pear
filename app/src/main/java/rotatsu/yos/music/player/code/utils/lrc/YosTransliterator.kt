@@ -43,9 +43,16 @@ object YosTransliterator {
         var changed = false
         val filled = lyrics.entries.mapIndexed { index, line ->
             val existing = lyrics.transliterations.getOrNull(index)
-            if (existing != null) return@mapIndexed existing
-
             val segments = YosLyrics.segmentsOf(line)
+            if (existing != null) {
+                // A line already in Latin letters gains nothing from a transliteration, even
+                // when the source file carries one.
+                if (!needsConversion(segments)) {
+                    changed = true
+                    return@mapIndexed null
+                }
+                return@mapIndexed existing
+            }
             val converted = segments.map { transliterate(it.second, lyrics.language) }
             // A Japanese line that is only partly readable would mix two scripts, so it
             // shows nothing instead.
@@ -58,6 +65,9 @@ object YosTransliterator {
         }
         return if (changed) lyrics.copy(transliterations = filled) else lyrics
     }
+
+    private fun needsConversion(segments: List<Pair<Float, String>>): Boolean =
+        segments.any { seg -> YosScripts.split(seg.second).any { it.script.needsConversion } }
 
     private fun isPartial(segments: List<Pair<Float, String>>, converted: List<String?>): Boolean =
         segments.indices.any { i ->

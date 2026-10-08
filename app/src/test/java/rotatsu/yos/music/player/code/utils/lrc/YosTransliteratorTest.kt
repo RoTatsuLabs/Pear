@@ -115,6 +115,25 @@ class YosTransliteratorTest {
     }
 
     @Test
+    fun fillDropsASourceTransliterationOnLatinLines() {
+        val lyrics = YosLyrics(
+            format = YosLyricFormat.TTML,
+            entries = listOf(
+                listOf(1000f to "", 1000f to "Finally", 2000f to "happy", 1000f to ""),
+                listOf(5000f to "", 5000f to "안녕", 5000f to "")
+            ),
+            otherSide = listOf(false, false),
+            transliterations = listOf(listOf("Finally", "happy"), listOf("annyeong")),
+            credits = emptyList()
+        )
+
+        val filled = YosTransliterator.fill(lyrics)
+
+        assertNull(filled.transliterations[0])
+        assertEquals(listOf("annyeong"), filled.transliterations[1])
+    }
+
+    @Test
     fun fillKeepsPausesAlignedWithTheirSlots() {
         val line = listOf(1000f to "", 1500f to "你", 2500f to "", 3000f to "好", 1000f to "")
         val lyrics = YosLyrics(YosLyricFormat.TTML, listOf(line), listOf(false), listOf(null), emptyList())

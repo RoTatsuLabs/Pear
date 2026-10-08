@@ -31,6 +31,8 @@ All notable changes to Pear are listed here, newest first.
 * Only record the page list for the blurred title bar when the bar blur setting is on.
 
 ### Fixes
+* Show the translate button's on look as the two speech bubbles cut out of a light square. It used to turn into a plain square with nothing in it.
+* Stop showing a transliteration over lyric lines that are already in Latin letters, even when the TTML file carries one.
 * Hide the translate button when the lyrics carry no translation, instead of showing a button that does nothing.
 * Show Arabic lyrics with word timing in full while they play. The letters used to fall apart and land out of order, and the line was cut down to its last two letters. Each word now keeps its joined letters and the highlight sweeps from right to left.
 * Lay out Arabic and Hebrew lyrics right to left. The lines sit against the right edge, the transliteration and translation line up with them, and the transliteration follows the words from right to left.
