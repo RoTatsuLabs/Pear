@@ -1,19 +1,35 @@
-# Pear Player
+<div align="center">
+
+<img src="app/src/main/ic_launcher-playstore.png" alt="Pear" width="128" height="128">
+
+# Pear
+
+**A local music player for Android, styled after Apple Music.**
+
+Synced lyrics, library browsing and a clean interface for the music already on your device.
 
 [![Nightly Build](https://github.com/RoTatsuLabs/Pear/actions/workflows/nightly_build.yml/badge.svg?branch=nightly)](https://github.com/RoTatsuLabs/Pear/actions/workflows/nightly_build.yml)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![Android 6.0+](https://img.shields.io/badge/Android-6.0%2B-3DDC84.svg)](#requirements)
 
-Pear Player is a local music player for Android, styled after Apple Music. It plays the music stored on your device and puts most of its effort into synced lyrics, library browsing and a clean interface.
+[Features](#features) · [Installing](#installing) · [Building](#building-from-source) · [Contributing](#contributing) · [Licensing](#credits-and-licensing)
+
+</div>
+
+---
 
 ## Features
 
-**Lyrics**
+### Lyrics
+
 - Reads LRC and TTML files placed next to a song, and lyrics stored in the song's own tags (MP3, M4A, FLAC and Ogg).
 - Follows word timing from TTML files, including duet sides and translations, and shows songwriter credits below the last line.
 - Adds a transliteration above the lyrics for Chinese, Japanese, Korean, Cyrillic, Greek and other scripts. A TTML file can supply its own.
+- Lays out Arabic and Hebrew lyrics right to left.
 - Fades and blurs lines by their distance from the sung one, and gives held notes a soft glow. Blur and glow need Android 12 or newer.
 
-**Playback and library**
+### Playback and library
+
 - Browse by songs, albums, artists and playlists.
 - Static full-screen album art on the playback and album pages, with a transition between the playback page and the lyrics.
 - Interface translations for English, Japanese, Simplified Chinese and Traditional Chinese.
@@ -41,7 +57,7 @@ cd Pear
 
 The APKs are written to `app/build/outputs/apk/debug/`, one per architecture.
 
-Other tasks the CI also runs:
+The CI also runs:
 
 ```sh
 ./gradlew test       # unit tests
