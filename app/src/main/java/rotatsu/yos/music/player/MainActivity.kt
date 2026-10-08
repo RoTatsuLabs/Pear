@@ -123,6 +123,7 @@ import rotatsu.yos.music.player.ui.pages.HomeNav
 import rotatsu.yos.music.player.ui.pages.NowPlaying
 import rotatsu.yos.music.player.ui.pages.NowPlayingPage.Album
 import rotatsu.yos.music.player.ui.pages.library.Library
+import rotatsu.yos.music.player.ui.pages.RecentlyPlayed
 import rotatsu.yos.music.player.ui.pages.library.NormalMusic
 import rotatsu.yos.music.player.ui.pages.library.albums.AlbumInfo
 import rotatsu.yos.music.player.ui.pages.library.albums.LocalAlbums
@@ -135,6 +136,7 @@ import rotatsu.yos.music.player.ui.pages.settings.extend.statusBarLyric.LyricGet
 import rotatsu.yos.music.player.ui.pages.settings.library.LibraryOverview
 import rotatsu.yos.music.player.ui.pages.settings.others.About
 import rotatsu.yos.music.player.ui.pages.settings.audio.CrossfadeSetting
+import rotatsu.yos.music.player.ui.pages.settings.experimental.VocalSeparationSetting
 import rotatsu.yos.music.player.ui.pages.settings.performance.LyricSetting
 import rotatsu.yos.music.player.ui.pages.settings.performance.NotificationSetting
 import rotatsu.yos.music.player.ui.pages.settings.performance.userinterface.ScreenCornerSetDialog
@@ -441,6 +443,9 @@ class MainActivity : BaseActivity() {
                                             composable(UI.PlayLists) {
                                                 PlayLists(navController)
                                             }
+                                            composable(UI.RecentlyPlayed) {
+                                                RecentlyPlayed(navController)
+                                            }
                                             composable(UI.NormalMusic) {
                                                 NormalMusic(navController)
                                             }
@@ -479,6 +484,9 @@ class MainActivity : BaseActivity() {
                                             }
                                             composable(UI.Settings.CrossfadeSetting) {
                                                 CrossfadeSetting(navController)
+                                            }
+                                            composable(UI.Settings.VocalSeparation) {
+                                                VocalSeparationSetting(navController)
                                             }
                                             composable(UI.Settings.About) {
                                                 About(

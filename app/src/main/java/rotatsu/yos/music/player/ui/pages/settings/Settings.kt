@@ -134,7 +134,7 @@ fun Settings(navController: NavController) =
                             SwitchItem(
                                 title = stringResource(id = R.string.settings_play_history),
                                 // desc = stringResource(id = R.string.settings_play_history_desc),
-                                onClick = { },
+                                onClick = { SettingsLibrary.ListenHistory = !SettingsLibrary.ListenHistory },
                                 checkedLambda = { SettingsLibrary.ListenHistory }
                             )
                         }
@@ -148,6 +148,14 @@ fun Settings(navController: NavController) =
                                 // desc = stringResource(id = R.string.settings_extend_statusbarlyric_desc)
                             ) {
                                 navController.toUI(UI.Settings.LyricGetter)
+                            }
+                        }
+
+                        GroupSpacer()
+                        ListHeader(stringResource(id = R.string.settings_experimental))
+                        RoundColumn {
+                            LabelItem(title = stringResource(id = R.string.settings_experimental_vocal_separation)) {
+                                navController.toUI(UI.Settings.VocalSeparation)
                             }
                         }
 

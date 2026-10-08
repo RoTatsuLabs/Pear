@@ -8,8 +8,8 @@
     <string name="page_library_songs">歌曲</string>
     <string name="page_settings_title">设置</string>
     <string name="page_library_title">资料库</string>
-    <string name="home_recommend_title">试试这些</string>
-    <string name="home_recommend_subtitle">来自你的资料库</string>
+    <string name="home_recommend_title">精选推荐</string>
+    <string name="home_recommend_subtitle">来自资料库</string>
     <string name="playlist_unavailable_title">未能显示播放列表</string>
     <string name="tip_scanning">正在从资料库拉取歌曲…</string>
     <string name="tip_no_song">没有播放项目。</string>
@@ -146,4 +146,11 @@
     <string name="settings_audio_crossfade_enable_desc">仅在播放自然进入下一首歌曲时生效。</string>
     <string name="settings_audio_crossfade_duration">过渡时长</string>
     <string name="settings_audio_crossfade_duration_desc">过渡时间越长，歌曲之间的重叠越多。</string>
+    <string name="home_recently_played_title">最近播放</string>
+    <string name="home_recently_played_empty">播放过的歌曲会显示在这里。</string>
+    <string name="settings_experimental">实验性选项</string>
+    <string name="settings_experimental_vocal_separation">人声分离</string>
+    <string name="settings_experimental_vocal_gpu">GPU 加速</string>
+    <string name="settings_experimental_vocal_gpu_desc">使用 LiteRT GPU 加速进行人声分离。兼容性、功耗和性能因设备而异。</string>
+    <string name="settings_experimental_vocal_gpu_note">更改将在播放服务重新创建后生效。仅在 GPU 反复失败或性能极度异常时才会自动禁用 GPU 加速。</string>
 </resources>

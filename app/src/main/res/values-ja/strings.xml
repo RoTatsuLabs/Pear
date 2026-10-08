@@ -8,8 +8,8 @@
     <string name="page_library_songs">曲</string>
     <string name="page_settings_title">設定</string>
     <string name="page_library_title">ライブラリ</string>
-    <string name="home_recommend_title">これらを試してみてください</string>
-    <string name="home_recommend_subtitle">あなたのライブラリから</string>
+    <string name="home_recommend_title">注目のピック</string>
+    <string name="home_recommend_subtitle">ライブラリから</string>
     <string name="playlist_unavailable_title">プレイリストを表示できません</string>
     <string name="tip_scanning">ライブラリから曲を取得中…</string>
     <string name="tip_no_song">再生項目がありません。</string>
@@ -146,4 +146,11 @@
     <string name="settings_audio_crossfade_enable_desc">再生が自然に次の曲へ進むときのみ適用されます。</string>
     <string name="settings_audio_crossfade_duration">切り替え時間</string>
     <string name="settings_audio_crossfade_duration_desc">切り替え時間が長いほど、曲どうしの重なりが大きくなります。</string>
+    <string name="home_recently_played_title">最近再生した項目</string>
+    <string name="home_recently_played_empty">再生した曲がここに表示されます。</string>
+    <string name="settings_experimental">試験的オプション</string>
+    <string name="settings_experimental_vocal_separation">ボーカル分離</string>
+    <string name="settings_experimental_vocal_gpu">GPUアクセラレーション</string>
+    <string name="settings_experimental_vocal_gpu_desc">ボーカル分離にLiteRTのGPUアクセラレーションを使用します。互換性、消費電力、性能は端末によって異なります。</string>
+    <string name="settings_experimental_vocal_gpu_note">変更は再生サービスの再作成後に反映されます。GPUアクセラレーションは、GPUの失敗が繰り返された場合や性能が極端に異常な場合にのみ自動で無効になります。</string>
 </resources>

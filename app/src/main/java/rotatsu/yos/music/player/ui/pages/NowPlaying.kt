@@ -712,20 +712,20 @@ fun NowPlaying(
                                                                     painterResource(id = R.drawable.ic_nowplaying_translateon),
                                                                     contentDescription = null,
                                                                     modifier = Modifier
-                                                                        .size(40.dp)
+                                                                        .size(36.dp)
                                                                 )
                                                             } else {
                                                                 Icon(
                                                                     painterResource(id = R.drawable.ic_nowplaying_translate),
                                                                     contentDescription = null,
                                                                     modifier = Modifier
-                                                                        .size(40.dp)
+                                                                        .size(36.dp)
                                                                 )
                                                             }
                                                         }
                                                     }
                                                 } else {
-                                                    Spacer(Modifier.height(40.dp))
+                                                    Spacer(Modifier.height(36.dp))
                                                 }
                                             }
                                         }

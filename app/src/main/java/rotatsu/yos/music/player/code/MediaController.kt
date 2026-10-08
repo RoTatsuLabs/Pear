@@ -60,6 +60,7 @@ import rotatsu.yos.music.player.code.utils.lrc.YosLyricsFactory
 import rotatsu.yos.music.player.code.utils.lrc.YosTransliterator
 import rotatsu.yos.music.player.code.utils.player.Crossfade
 import rotatsu.yos.music.player.code.utils.player.FadeExo
+import rotatsu.yos.music.player.code.utils.player.PlayHistoryRecorder
 import rotatsu.yos.music.player.code.utils.player.FadeExo.fadePause
 import rotatsu.yos.music.player.code.utils.player.FadeExo.fadePlay
 import rotatsu.yos.music.player.data.libraries.MusicLibrary
@@ -416,6 +417,7 @@ class YosPlaybackService : MediaSessionService() {
     private var saveJob: Job? = null
     private var transliterationJob: Job? = null
     private var crossfade: Crossfade? = null
+    private var historyRecorder: PlayHistoryRecorder? = null
 
     fun saveDataWithDelay() {
         saveJob?.cancel()
@@ -475,6 +477,7 @@ class YosPlaybackService : MediaSessionService() {
             .build()
         val player = buildExo(true)
         crossfade = Crossfade(player) { buildExo(false) }.also { it.attach() }
+        historyRecorder = PlayHistoryRecorder(player).also { it.attach() }
 
         val forwardingPlayer = object : ForwardingPlayer(player) {
             override fun play() {
@@ -781,6 +784,8 @@ class YosPlaybackService : MediaSessionService() {
         transliterationJob?.cancel()
         crossfade?.release()
         crossfade = null
+        historyRecorder?.release()
+        historyRecorder = null
         mediaSession?.run {
             player.release()
             release()

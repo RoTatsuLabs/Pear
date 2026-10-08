@@ -25,6 +25,7 @@ interface UI {
         const val LocalAlbums = "LocalAlbums"
 
         const val AlbumInfo = "AlbumInfo"
+        const val RecentlyPlayed = "RecentlyPlayed"
     }
 
     @Stable
@@ -36,6 +37,7 @@ interface UI {
             const val LyricGetter = "LyricGetter"
             const val ExoplayerSetting = "ExoplayerSetting"
             const val CrossfadeSetting = "CrossfadeSetting"
+            const val VocalSeparation = "VocalSeparation"
             const val About = "About"
             const val MediaCodec = "MediaCodec"
 

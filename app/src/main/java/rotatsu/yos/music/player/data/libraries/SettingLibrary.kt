@@ -226,6 +226,14 @@ object SettingsLibrary {
         initialValue = false
     )
 
+    /** Use the GPU for vocal separation. */
+    @Stable
+    var VocalSeparationGpu by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_experimental_vocal_separation_gpu",
+        initialValue = true
+    )
+
     /** Overlap the end of a song with the start of the next one. */
     @Stable
     var CrossfadeEnabled by mutableDataSaverStateOf(

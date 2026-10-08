@@ -2,6 +2,22 @@ package rotatsu.yos.music.player.ui.pages
 
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.clickable
+import rotatsu.yos.music.player.data.libraries.PlayHistoryList
+import rotatsu.yos.music.player.data.libraries.PlayHistory
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -84,6 +101,9 @@ fun Home(
             item("RecommendCard") {
                 RecommendCard(imageViewModel)
             }
+            item("RecentlyPlayed") {
+                RecentlyPlayedRow(navController)
+            }
         })
 
 @Composable
@@ -126,8 +146,8 @@ fun RecommendCard(imageViewModel: ImageViewModel) {
 
             HorizontalPager(
                 state = pagerState,
-                pageSize = PageSize.Fixed(278.dp),
-                contentPadding = PaddingValues(start = 20.dp, end = 136.dp),
+                pageSize = PageSize.Fixed(FeaturedCardWidth + 14.dp),
+                contentPadding = PaddingValues(start = 20.dp, end = 120.dp),
                 key = { randomMusicList.value[it] },
                 beyondViewportPageCount = 5
             ) { page ->
@@ -148,144 +168,256 @@ fun RecommendCard(imageViewModel: ImageViewModel) {
 }
 
 @Composable
-fun RecommendCardItem(subTitle: String, music: YosMediaItem, onClick: () -> Unit) =
-    Column(Modifier.width(268.dp)) {
+fun RecommendCardItem(subTitle: String, music: YosMediaItem, onClick: () -> Unit) {
+    val drawable = remember(music.thumb) {
+        mutableStateOf<Drawable?>(null)
+    }
 
-        val drawable = remember(music.thumb) {
-            mutableStateOf<Drawable?>(null)
-        }
+    val context = LocalContext.current
+    val imageLoader = ImageLoader(context)
+    YosWrapper {
+        LaunchedEffect(Unit) {
+            if (music.thumb == null) return@LaunchedEffect
 
-        val context = LocalContext.current
-        val imageLoader = ImageLoader(context)
-        YosWrapper {
-            LaunchedEffect(Unit) {
-                if (music.thumb == null) return@LaunchedEffect
-
-                delay(200)
-                val request = ImageRequest.Builder(context)
-                    .data(music.thumb)
-                    .build()
-                val thisBitmap = imageLoader.execute(request).drawable?.toBitmap()?.run {
-                    BitmapResolver.bitmapCompress(this, lowQuality = true)
-                }
-
-                if (thisBitmap != null) {
-                    drawable.value = imageResolve(
-                        thisBitmap
-                    ).toDrawable(context.resources)
-                    thisBitmap.recycle()
-                }
-                imageLoader.shutdown()
+            delay(200)
+            val request = ImageRequest.Builder(context)
+                .data(music.thumb)
+                .build()
+            val thisBitmap = imageLoader.execute(request).drawable?.toBitmap()?.run {
+                BitmapResolver.bitmapCompress(this, lowQuality = true)
             }
+
+            if (thisBitmap != null) {
+                drawable.value = imageResolve(
+                    thisBitmap
+                ).toDrawable(context.resources)
+                thisBitmap.recycle()
+            }
+            imageLoader.shutdown()
         }
+    }
 
-        Text(text = subTitle, fontSize = 15.sp, lineHeight = 15.sp, modifier = Modifier.alpha(0.6f))
+    val shape = YosRoundedCornerShape(20.dp)
+    val density = LocalDensity.current
+    Box(
+        Modifier
+            .width(FeaturedCardWidth)
+            .height(FeaturedCardHeight)
+            .graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+                clip = true
+                this.shape = shape
+            }
+            .drawWithCache {
+                onDrawWithContent {
+                    drawContent()
+                    val outline = shape.createOutline(
+                        Size(size.width, size.height),
+                        LayoutDirection.Ltr,
+                        density
+                    )
+                    drawOutline(
+                        outline = outline,
+                        color = Color.DarkGray.copy(alpha = 0.08f),
+                        style = Stroke(width = 8f)
+                    )
+                    drawOutline(
+                        outline = outline,
+                        color = Color.DarkGray.copy(alpha = 0.4f),
+                        style = Stroke(width = 8f),
+                        blendMode = BlendMode.Overlay
+                    )
+                }
+            }
+            .clickable(onClick = onClick)
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current).data(data = music.thumb)
+                .crossfade(true).error(R.drawable.placeholder_music_default_artwork)
+                .placeholder(R.drawable.placeholder_music_default_artwork)
+                .fallback(R.drawable.placeholder_music_default_artwork).build(),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
 
-        val shape = YosRoundedCornerShape(14.dp)
-        // val cornerRadiusPx = 12.dp.toPx()
-
-            val density = LocalDensity.current
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 14.dp)
-                    .height(354.dp)
-                    .graphicsLayer {
-                        compositingStrategy = CompositingStrategy.Offscreen
-                        clip = true
-                        this.shape = shape
-                    }
-                    .drawWithCache {
-                        onDrawWithContent {
-                            drawContent()
-                            val outline = shape.createOutline(
-                                Size(size.width, size.height),
-                                LayoutDirection.Ltr,
-                                density
-                            )
-                            drawOutline(
-                                outline = outline,
-                                color = Color.DarkGray.copy(alpha = 0.08f),
-                                style = Stroke(width = 8f)
-                            )
-                            drawOutline(
-                                outline = outline,
-                                color = Color.DarkGray.copy(alpha = 0.4f),
-                                style = Stroke(width = 8f),
-                                blendMode = BlendMode.Overlay
-                            )
-                        }
-                    }
-                    .clickable(onClick = onClick)) {
+        // The blurred colours of the cover fade in from the bottom, under the text.
+        Box(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(0.55f)
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .drawWithContent {
+                    drawContent()
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.55f to Color.Black
+                        ),
+                        blendMode = BlendMode.DstIn
+                    )
+                }
+        ) {
+            YosWrapper {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current).data(data = music.thumb)
-                        .crossfade(true).error(R.drawable.placeholder_music_default_artwork)
-                        .placeholder(R.drawable.placeholder_music_default_artwork)
-                        .fallback(R.drawable.placeholder_music_default_artwork).build(),
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(data = drawable.value).crossfade(true).build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(268.dp)
-                )
-
-                Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color.Black,
-                    contentColor = Color.White
-                ) {
-                    YosWrapper {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(data = drawable.value).crossfade(true).build(),
-                            contentDescription = null,
-                            contentScale = ContentScale.FillWidth,
-                            modifier = Modifier
-                                .fillMaxSize(),
-                            colorFilter = ColorFilter.tint(Color(0x33000000), BlendMode.Overlay)
+                    colorFilter = ColorFilter.tint(Color(0x33000000), BlendMode.Overlay)
+                )
+            }
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            1f to Color(0xAA000000)
                         )
-                    }
+                    )
+            )
+        }
 
-                    Column(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 20.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = music.title ?: defaultTitle,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            lineHeight = 16.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = music.artistsName ?: defaultArtistsName,
-                            fontSize = 13.sp,
-                            lineHeight = 13.sp,
-                            modifier = Modifier
-                                .alpha(0.6f)
-                                .padding(top = 2.dp),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = music.album ?: defaultAlbum,
-                            fontSize = 13.sp,
-                            lineHeight = 13.sp,
-                            modifier = Modifier
-                                .alpha(0.6f)
-                                .padding(top = 2.dp),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+        Column(
+            Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp)
+        ) {
+            Text(
+                text = subTitle,
+                fontSize = 15.sp,
+                lineHeight = 15.sp,
+                color = Color.White,
+                modifier = Modifier.alpha(0.6f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = music.title ?: defaultTitle,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                lineHeight = 22.sp,
+                modifier = Modifier.padding(top = 4.dp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = music.artistsName ?: defaultArtistsName,
+                color = Color.White,
+                fontSize = 15.sp,
+                lineHeight = 18.sp,
+                modifier = Modifier
+                    .alpha(0.6f)
+                    .padding(top = 2.dp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+fun RecentlyPlayedRow(navController: NavController) {
+    val songs = runCatching { MusicLibrary.songs }.getOrDefault(emptyList())
+    val ids = PlayHistory.ids
+    val recent = remember(songs, ids) { PlayHistoryList.resolve(songs, ids) }
+    if (recent.isEmpty()) return
+
+    val scope = rememberCoroutineScope()
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = 18.dp, bottom = 10.dp)
+    ) {
+        Row(
+            Modifier
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { navController.toUI(UI.RecentlyPlayed) }
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(id = R.string.home_recently_played_title),
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                lineHeight = 24.sp
+            )
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(start = 2.dp)
+                    .size(26.dp)
+                    .alpha(0.6f)
+            )
+        }
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(top = 14.dp)
+        ) {
+            items(
+                recent.take(RECENT_ROW_LIMIT),
+                key = { it.mediaId ?: it.uri.toString() }
+            ) { music ->
+                val coverShape = YosRoundedCornerShape(14.dp)
+                Column(
+                    Modifier
+                        .width(RecentCoverSize)
+                        .clickable {
+                            scope.launch(Dispatchers.IO) {
+                                MediaController.prepare(music, recent)
+                            }
+                        }
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current).data(data = music.thumb)
+                            .crossfade(true).error(R.drawable.placeholder_music_default_artwork)
+                            .placeholder(R.drawable.placeholder_music_default_artwork)
+                            .fallback(R.drawable.placeholder_music_default_artwork).build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(RecentCoverSize)
+                            .clip(coverShape)
+                            .border(0.5.dp, Color.DarkGray.copy(alpha = 0.35f), coverShape)
+                    )
+                    Text(
+                        text = music.title ?: defaultTitle,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 17.sp,
+                        lineHeight = 21.sp,
+                        modifier = Modifier.padding(top = 8.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = music.artistsName ?: defaultArtistsName,
+                        fontSize = 15.sp,
+                        lineHeight = 18.sp,
+                        modifier = Modifier.alpha(0.6f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
+        }
     }
+}
+
+private val FeaturedCardWidth = 238.dp
+private val FeaturedCardHeight = 318.dp
+private val RecentCoverSize = 155.dp
+private const val RECENT_ROW_LIMIT = 12
 
 /*
 fun handleImage(
