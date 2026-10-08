@@ -707,8 +707,10 @@ private fun LazyItemScope.Line(
                 val measureResult = measurer.measure(
                     text = styledString,
                     style = style,
+                    // A right to left line is measured over the full width, so its right
+                    // alignment has room to work in.
                     constraints = Constraints(
-                        minWidth = 0,
+                        minWidth = if (rtl && constraints.hasBoundedWidth) constraints.maxWidth else 0,
                         maxWidth = constraints.maxWidth,
                     ),
                     layoutDirection = if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
@@ -1352,7 +1354,7 @@ fun LazyItemScope.LyricItem(
                                                 val layout = measurer.measure(
                                                     text = charWord,
                                                     style = lineStyle,
-                                                    constraints = measureResult.layoutInput.constraints
+                                                    constraints = Constraints(maxWidth = measureResult.layoutInput.constraints.maxWidth)
                                                 )
 
                                                 wordsToDraw += DrawWord(

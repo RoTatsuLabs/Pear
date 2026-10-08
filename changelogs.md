@@ -31,6 +31,7 @@ All notable changes to Pear are listed here, newest first.
 ### Fixes
 * Show Arabic lyrics with word timing in full while they play. The letters used to fall apart and land out of order, and the line was cut down to its last two letters. Each word now keeps its joined letters and the highlight sweeps from right to left.
 * Lay out Arabic and Hebrew lyrics right to left. The lines sit against the right edge, the transliteration and translation line up with them, and the transliteration follows the words from right to left.
+* Keep Arabic and Hebrew lyric lines against the right edge when they fit on one row. They used to sit at the left, and only a wrapped second row lined up on the right.
 * Stop joined letters from showing lighter spots where they overlap in Arabic lyrics that are not the current line.
 * Stop the media scan from wiping the saved playlist when audio permission is denied.
 * Skip folders with no songs during the library scan instead of crashing on them.
