@@ -115,10 +115,14 @@ fun Settings(navController: NavController) =
                                 navController.toUI(UI.Settings.ExoplayerSetting)
                             }
                             Divider()
+                            LabelItem(title = stringResource(id = R.string.settings_audio_crossfade)) {
+                                navController.toUI(UI.Settings.CrossfadeSetting)
+                            }
+                            Divider()
                             SwitchItem(
                                 title = stringResource(id = R.string.settings_audio_fade_in_out),
                                 // desc = stringResource(id = R.string.settings_audio_fade_in_out_desc),
-                                onClick = { },
+                                onClick = { SettingsLibrary.FadePlay = !SettingsLibrary.FadePlay },
                                 checkedLambda = { SettingsLibrary.FadePlay }
                             )
                         }

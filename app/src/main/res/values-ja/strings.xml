@@ -141,4 +141,9 @@
     <string name="settings_performance_lyric_prefer_embedded">内蔵歌詞を優先</string>
     <string name="settings_performance_lyric_prefer_embedded_desc">曲のタグに保存された歌詞を、隣にある歌詞ファイルより先に読み込みます。次の曲から反映されます。</string>
     <string name="tip_lyric_font_invalid">このフォントファイルは使用できません。.ttf、.otf、.ttc のフォントを選んでください。</string>
+    <string name="settings_audio_crossfade">クロスフェード</string>
+    <string name="settings_audio_crossfade_enable">クロスフェードを有効にする</string>
+    <string name="settings_audio_crossfade_enable_desc">再生が自然に次の曲へ進むときのみ適用されます。</string>
+    <string name="settings_audio_crossfade_duration">切り替え時間</string>
+    <string name="settings_audio_crossfade_duration_desc">切り替え時間が長いほど、曲どうしの重なりが大きくなります。</string>
 </resources>

@@ -5,6 +5,7 @@ All notable changes to Pear are listed here, newest first.
 ## [Unreleased]
 
 ### Changes
+* Add a Crossfade setting that overlaps the end of a song with the start of the next one. It has an on switch and a transition length from 1 to 12 seconds, and it only runs when a song ends by itself.
 * Rebuild the Lyric Display settings with a live preview, sliders for the font size and weight, a custom font file and a reset for the font size.
 * Add a lyric timing offset, a Smart Word-by-Word Lyrics option, a Prefer Embedded Lyrics option, and a choice to show the transliteration above or below the lyrics.
 * Make the translate button larger.
@@ -34,6 +35,7 @@ All notable changes to Pear are listed here, newest first.
 * Only record the page list for the blurred title bar when the bar blur setting is on.
 
 ### Fixes
+* Make the Fade In / Fade Out switch do something. It could not be turned off, and playback always faded.
 * Apply the lyric font weight and line balance settings at once instead of after a restart.
 * Skip a translation that only repeats its own lyric line, so no duplicate line shows and the translate button hides when nothing is left to translate.
 * Show the translate button's on look as the two speech bubbles cut out of a light square. It used to turn into a plain square with nothing in it.

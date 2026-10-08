@@ -58,6 +58,7 @@ import rotatsu.yos.music.player.code.utils.lrc.YosLyricSmart
 import rotatsu.yos.music.player.code.utils.lrc.YosLyrics
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricsFactory
 import rotatsu.yos.music.player.code.utils.lrc.YosTransliterator
+import rotatsu.yos.music.player.code.utils.player.Crossfade
 import rotatsu.yos.music.player.code.utils.player.FadeExo
 import rotatsu.yos.music.player.code.utils.player.FadeExo.fadePause
 import rotatsu.yos.music.player.code.utils.player.FadeExo.fadePlay
@@ -414,6 +415,7 @@ class YosPlaybackService : MediaSessionService() {
 
     private var saveJob: Job? = null
     private var transliterationJob: Job? = null
+    private var crossfade: Crossfade? = null
 
     fun saveDataWithDelay() {
         saveJob?.cancel()
@@ -447,7 +449,7 @@ class YosPlaybackService : MediaSessionService() {
             .setUsage(C.USAGE_MEDIA)
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .build()
-        val player = ExoPlayer.Builder(
+        fun buildExo(primary: Boolean) = ExoPlayer.Builder(
             this,
             YosRenderFactory(this)
                 .setEnableAudioFloatOutput(
@@ -467,10 +469,12 @@ class YosPlaybackService : MediaSessionService() {
         )
             .setAudioAttributes(
                 audioAttributes,
-                SettingsLibrary.AudioAttributes
+                primary && SettingsLibrary.AudioAttributes
             )
-            .setHandleAudioBecomingNoisy(true)
+            .setHandleAudioBecomingNoisy(primary)
             .build()
+        val player = buildExo(true)
+        crossfade = Crossfade(player) { buildExo(false) }.also { it.attach() }
 
         val forwardingPlayer = object : ForwardingPlayer(player) {
             override fun play() {
@@ -478,6 +482,7 @@ class YosPlaybackService : MediaSessionService() {
             }
 
             override fun pause() {
+                crossfade?.beforePause()
                 player.fadePause()
             }
 
@@ -774,6 +779,8 @@ class YosPlaybackService : MediaSessionService() {
     override fun onDestroy() {
         onServiceStopped()
         transliterationJob?.cancel()
+        crossfade?.release()
+        crossfade = null
         mediaSession?.run {
             player.release()
             release()

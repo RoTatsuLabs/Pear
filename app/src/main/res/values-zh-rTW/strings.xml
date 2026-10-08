@@ -141,4 +141,9 @@
     <string name="settings_performance_lyric_prefer_embedded">優先使用內嵌歌詞</string>
     <string name="settings_performance_lyric_prefer_embedded_desc">先讀取歌曲標籤中的歌詞，再讀取旁邊的歌詞檔案。下一首歌曲起生效。</string>
     <string name="tip_lyric_font_invalid">無法使用此字型檔案，請選擇 .ttf、.otf 或 .ttc 字型。</string>
+    <string name="settings_audio_crossfade">交叉淡入淡出</string>
+    <string name="settings_audio_crossfade_enable">啟用交叉淡入淡出</string>
+    <string name="settings_audio_crossfade_enable_desc">僅在播放自然進入下一首歌曲時生效。</string>
+    <string name="settings_audio_crossfade_duration">轉場時長</string>
+    <string name="settings_audio_crossfade_duration_desc">轉場時間越長，歌曲之間的重疊越多。</string>
 </resources>

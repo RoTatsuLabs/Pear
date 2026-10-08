@@ -6,6 +6,7 @@ import android.animation.ValueAnimator
 import androidx.compose.runtime.Stable
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
+import rotatsu.yos.music.player.data.libraries.SettingsLibrary
 import rotatsu.yos.music.player.data.objects.MediaViewModelObject.isPlaying
 
 @Stable
@@ -72,6 +73,12 @@ object FadeExo {
 
     fun MediaController.fadePause() {
         setPlaying(0)
+        if (!SettingsLibrary.FadePlay) {
+            fadeVolumeAnimator?.cancel()
+            targetStatus = 0
+            this.pause()
+            return
+        }
         val currentVolume = this.volume
         fadeVolume(this, currentVolume, 0f, fadeAnimationDuration, 0) {
             this.pause()
@@ -80,6 +87,13 @@ object FadeExo {
 
     fun MediaController.fadePlay() {
         setPlaying(1)
+        if (!SettingsLibrary.FadePlay) {
+            fadeVolumeAnimator?.cancel()
+            targetStatus = 1
+            this.volume = 1f
+            this.play()
+            return
+        }
         val currentVolume = this.volume
         this.play()
         fadeVolume(this, currentVolume, 1f, fadeAnimationDuration, 1)
@@ -87,6 +101,12 @@ object FadeExo {
 
     fun ExoPlayer.fadePause() {
         setPlaying(0)
+        if (!SettingsLibrary.FadePlay) {
+            fadeVolumeAnimator?.cancel()
+            targetStatus = 0
+            this.pause()
+            return
+        }
         val currentVolume = this.volume
         fadeVolume(this, currentVolume, 0f, fadeAnimationDuration, 0) {
             this.pause()
@@ -95,6 +115,13 @@ object FadeExo {
 
     fun ExoPlayer.fadePlay() {
         setPlaying(1)
+        if (!SettingsLibrary.FadePlay) {
+            fadeVolumeAnimator?.cancel()
+            targetStatus = 1
+            this.volume = 1f
+            this.play()
+            return
+        }
         val currentVolume = this.volume
         this.play()
         fadeVolume(this, currentVolume, 1f, fadeAnimationDuration, 1)

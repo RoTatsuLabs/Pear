@@ -144,4 +144,9 @@
     <string name="lyric_preview_main" translatable="false">笑顔に花咲く君の目が</string>
     <string name="lyric_preview_roman" translatable="false">Egao ni hana saku kimi no me ga</string>
     <string name="lyric_preview_translation" translatable="false">Your smiling eyes are flower-like</string>
+    <string name="settings_audio_crossfade">Crossfade</string>
+    <string name="settings_audio_crossfade_enable">Enable Crossfade</string>
+    <string name="settings_audio_crossfade_enable_desc">Applies only when playback advances naturally to the next song.</string>
+    <string name="settings_audio_crossfade_duration">Transition Duration</string>
+    <string name="settings_audio_crossfade_duration_desc">Longer transitions create more overlap between songs.</string>
 </resources>

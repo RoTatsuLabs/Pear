@@ -35,6 +35,7 @@ interface UI {
 
             const val LyricGetter = "LyricGetter"
             const val ExoplayerSetting = "ExoplayerSetting"
+            const val CrossfadeSetting = "CrossfadeSetting"
             const val About = "About"
             const val MediaCodec = "MediaCodec"
 

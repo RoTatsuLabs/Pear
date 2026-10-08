@@ -226,6 +226,22 @@ object SettingsLibrary {
         initialValue = false
     )
 
+    /** Overlap the end of a song with the start of the next one. */
+    @Stable
+    var CrossfadeEnabled by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_audio_crossfade_enabled",
+        initialValue = false
+    )
+
+    /** Length of the crossfade in seconds. */
+    @Stable
+    var CrossfadeDuration by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_audio_crossfade_duration",
+        initialValue = 4
+    )
+
     /**
      * 渐入渐出播放
      */
