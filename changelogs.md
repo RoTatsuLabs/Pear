@@ -5,6 +5,7 @@ All notable changes to Pear are listed here, newest first.
 ## [Unreleased]
 
 ### Changes
+* Redraw the translate button as two speech bubbles in both its on and off looks, to match Apple Music.
 * Rework the README with a centered header, a short feature list and the build steps.
 * Rename the app to Pear. The launcher label, the settings text and the media notification channel no longer say Flamingo.
 * Show lyrics stored inside the song's tags when there is no TTML or LRC file next to it. LRC and TTML text in the lyrics tag of MP3, M4A, FLAC and Ogg files is read, and a file next to the song still wins.
@@ -30,6 +31,7 @@ All notable changes to Pear are listed here, newest first.
 * Only record the page list for the blurred title bar when the bar blur setting is on.
 
 ### Fixes
+* Hide the translate button when the lyrics carry no translation, instead of showing a button that does nothing.
 * Show Arabic lyrics with word timing in full while they play. The letters used to fall apart and land out of order, and the line was cut down to its last two letters. Each word now keeps its joined letters and the highlight sweeps from right to left.
 * Lay out Arabic and Hebrew lyrics right to left. The lines sit against the right edge, the transliteration and translation line up with them, and the transliteration follows the words from right to left.
 * Keep Arabic and Hebrew lyric lines against the right edge when they fit on one row. They used to sit at the left, and only a wrapped second row lined up on the right.

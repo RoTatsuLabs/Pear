@@ -347,6 +347,12 @@ fun NowPlaying(
                 derivedStateOf { showControl.value && alphaAnim.value != 0f }
             }
 
+            val hasTranslation = remember {
+                derivedStateOf {
+                    lrcEntries.value.any { it.lastOrNull()?.second?.isNotBlank() == true }
+                }
+            }
+
             println("重组：主功能区")
 
             // 歌词
@@ -675,47 +681,51 @@ fun NowPlaying(
                                             horizontalArrangement = Arrangement.End
                                         ) {
                                             YosWrapper {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .overlayEffect()
-                                                        .alpha(0.4f)
-                                                        .clickable(
-                                                            enabled = translationButtonEnabled.value,
-                                                            onClick = {
-                                                                Vibrator.click(context)
-                                                                translation.value =
-                                                                    !translation.value
-                                                                showControl.value = true
-                                                                lastClickTime.longValue =
-                                                                    TimeUtils.getNowMills()
-                                                                SettingsLibrary.NowPlayingTranslation =
-                                                                    translation.value
-                                                            },
-                                                            indication = null,
-                                                            interactionSource = remember { MutableInteractionSource() }),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    AnimatedContent(
-                                                        targetState = translation.value,
-                                                        transitionSpec = {
-                                                            fadeIn() togetherWith fadeOut()
-                                                        }) {
-                                                        if (it) {
-                                                            Icon(
-                                                                painterResource(id = R.drawable.ic_nowplaying_translateon),
-                                                                contentDescription = null,
-                                                                modifier = Modifier
-                                                                    .size(30.dp)
-                                                            )
-                                                        } else {
-                                                            Icon(
-                                                                painterResource(id = R.drawable.ic_nowplaying_translate),
-                                                                contentDescription = null,
-                                                                modifier = Modifier
-                                                                    .size(30.dp)
-                                                            )
+                                                if (hasTranslation.value) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .overlayEffect()
+                                                            .alpha(0.4f)
+                                                            .clickable(
+                                                                enabled = translationButtonEnabled.value,
+                                                                onClick = {
+                                                                    Vibrator.click(context)
+                                                                    translation.value =
+                                                                        !translation.value
+                                                                    showControl.value = true
+                                                                    lastClickTime.longValue =
+                                                                        TimeUtils.getNowMills()
+                                                                    SettingsLibrary.NowPlayingTranslation =
+                                                                        translation.value
+                                                                },
+                                                                indication = null,
+                                                                interactionSource = remember { MutableInteractionSource() }),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        AnimatedContent(
+                                                            targetState = translation.value,
+                                                            transitionSpec = {
+                                                                fadeIn() togetherWith fadeOut()
+                                                            }) {
+                                                            if (it) {
+                                                                Icon(
+                                                                    painterResource(id = R.drawable.ic_nowplaying_translateon),
+                                                                    contentDescription = null,
+                                                                    modifier = Modifier
+                                                                        .size(30.dp)
+                                                                )
+                                                            } else {
+                                                                Icon(
+                                                                    painterResource(id = R.drawable.ic_nowplaying_translate),
+                                                                    contentDescription = null,
+                                                                    modifier = Modifier
+                                                                        .size(30.dp)
+                                                                )
+                                                            }
                                                         }
                                                     }
+                                                } else {
+                                                    Spacer(Modifier.height(30.dp))
                                                 }
                                             }
                                         }
