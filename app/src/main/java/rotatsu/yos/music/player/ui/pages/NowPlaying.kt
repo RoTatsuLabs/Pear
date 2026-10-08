@@ -1260,11 +1260,13 @@ private fun Lyric(
                 //mediaViewModel = mediaViewModel,
                 lrcEntriesLambda = lrcEntries,
                 liveTimeLambda = {
-                    (mediaControl?.currentPosition ?: 0).toInt()
+                    (mediaControl?.currentPosition ?: 0).toInt() + SettingsLibrary.LyricTimingOffset
                 },
                 mediaEvent = object : YosMediaEvent {
                     override fun onSeek(position: Int) {
-                        mediaControl?.seekTo(position.toLong())
+                        mediaControl?.seekTo(
+                            (position - SettingsLibrary.LyricTimingOffset).coerceAtLeast(0).toLong()
+                        )
                     }
                 },
                 translationLambda = translationLambda,

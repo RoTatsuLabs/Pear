@@ -54,6 +54,7 @@ import rotatsu.yos.music.player.code.MediaController.mediaSession
 import rotatsu.yos.music.player.code.MediaController.musicPlaying
 import rotatsu.yos.music.player.code.MediaController.onServiceRunning
 import rotatsu.yos.music.player.code.MediaController.onServiceStopped
+import rotatsu.yos.music.player.code.utils.lrc.YosLyricSmart
 import rotatsu.yos.music.player.code.utils.lrc.YosLyrics
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricsFactory
 import rotatsu.yos.music.player.code.utils.lrc.YosTransliterator
@@ -514,14 +515,22 @@ class YosPlaybackService : MediaSessionService() {
 
                         val thisPath = path?.path
 
-                        // A TTML or LRC file next to the song wins, then lyrics in the tags.
+                        // A TTML or LRC file next to the song wins, then lyrics in the tags,
+                        // unless the settings ask for the tags first.
                         val language = Locale.getDefault().language
-                        val parsed = sequenceOf(
+                        val sources = listOf(
                             { AudioMetadataUtils.loadLyricsFile(this@YosPlaybackService, thisPath) },
                             { AudioMetadataUtils.loadEmbeddedLyrics(thisPath) }
-                        ).map { YosLyricsFactory.parse(it(), language) }
+                        ).let { if (SettingsLibrary.LyricPreferEmbedded) it.reversed() else it }
+                        val loaded = sources.asSequence()
+                            .map { YosLyricsFactory.parse(it(), language) }
                             .firstOrNull { it.entries.isNotEmpty() }
                             ?: YosLyrics.EMPTY
+                        val parsed = if (SettingsLibrary.LyricSmartWordByWord) {
+                            YosLyricSmart.expand(loaded)
+                        } else {
+                            loaded
+                        }
                         YosLyricsFactory.publish(parsed)
 
                         // Automatic transliteration can take a moment, because the platform

@@ -123,6 +123,62 @@ object SettingsLibrary {
         initialValue = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     )
 
+    /** Lyric text size as a multiple of the default. */
+    @Stable
+    var LyricFontScale by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_performance_lyric_font_scale",
+        initialValue = 1f
+    )
+
+    /** Path of the copied custom lyric font, empty for the system font. */
+    @Stable
+    var LyricFontPath by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_performance_lyric_font_path",
+        initialValue = ""
+    )
+
+    /** File name of the custom lyric font, shown in settings. */
+    @Stable
+    var LyricFontName by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_performance_lyric_font_name",
+        initialValue = ""
+    )
+
+    /** Spread lines that have no word timing evenly across their time. */
+    @Stable
+    var LyricSmartWordByWord by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_performance_lyric_smart_word_by_word",
+        initialValue = false
+    )
+
+    /** Shifts every lyric in milliseconds, positive values show lyrics earlier. */
+    @Stable
+    var LyricTimingOffset by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_performance_lyric_timing_offset",
+        initialValue = 0
+    )
+
+    /** Read lyrics from the song's tags before a lyric file next to it. */
+    @Stable
+    var LyricPreferEmbedded by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_performance_lyric_prefer_embedded",
+        initialValue = false
+    )
+
+    /** Draw the transliteration under the lyric line instead of above it. */
+    @Stable
+    var LyricTransliterationBelow by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_performance_lyric_transliteration_below",
+        initialValue = false
+    )
+
     /**
      * 播放界面背景动态效果
      */

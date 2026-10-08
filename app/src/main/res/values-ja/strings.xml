@@ -93,7 +93,7 @@
     <string name="settings_performance_ui_basic">基本</string>
     <string name="settings_performance_ui_blur_effect_desc">ツールバーのぼかし効果、パフォーマンスに問題を引き起こす可能性があります。</string>
     <string name="settings_performance_ui_blur_effect_title">ツールバーのぼかし</string>
-    <string name="settings_performance_lyric_style_font_weight_desc">設定後、アプリを再起動する必要があります。</string>
+    <string name="settings_performance_lyric_style_font_weight_desc">歌詞の太さを選びます。</string>
     <string name="playlist_shuffle_desc">現在シャッフル再生モードです。</string>
     <string name="page_library_playlists_music_total">%d 曲</string>
     <string name="settings_performance_ui_nowplaying_background_effect">背景の動的効果</string>
@@ -122,4 +122,23 @@
     <string name="settings_performance_ui_nowplaying_show_volume_bar">音量バーを表示</string>
     <string name="settings_performance_ui_nowplaying_show_volume_bar_desc">再生画面の下部に音量調節バーを表示します。</string>
     <string name="settings_performance_ui_theme">テーマ</string>
+    <string name="settings_performance_lyric_custom">カスタム</string>
+    <string name="settings_performance_lyric_font_file">フォントファイルを選択</string>
+    <string name="settings_performance_lyric_font_file_default">システム標準</string>
+    <string name="settings_performance_lyric_font_file_reset">システムフォントを使用</string>
+    <string name="settings_performance_lyric_font_size">フォントサイズ</string>
+    <string name="settings_performance_lyric_font_size_reset">フォントサイズをリセット</string>
+    <string name="settings_performance_lyric_font_size_reset_desc">歌詞のフォントサイズをリセットします。</string>
+    <string name="settings_performance_lyric_smart">スマート単語ごと歌詞</string>
+    <string name="settings_performance_lyric_smart_desc">単語タイミングのない歌詞を行の時間に合わせて均等に流し、単語ごとの歌詞のように表示します。次の曲から反映されます。</string>
+    <string name="settings_performance_lyric_offset">歌詞タイミングのオフセット</string>
+    <string name="settings_performance_lyric_offset_desc">すべての歌詞のタイミングを調整します。マイナス値で遅らせ、プラス値で早く表示します。</string>
+    <string name="settings_performance_lyric_transliteration">ローマ字表記</string>
+    <string name="settings_performance_lyric_transliteration_position">位置</string>
+    <string name="settings_performance_lyric_transliteration_above">歌詞の上</string>
+    <string name="settings_performance_lyric_transliteration_below">歌詞の下</string>
+    <string name="settings_performance_lyric_transliteration_desc">ローマ字表記を各歌詞行の上と下のどちらに表示するか選びます。</string>
+    <string name="settings_performance_lyric_prefer_embedded">内蔵歌詞を優先</string>
+    <string name="settings_performance_lyric_prefer_embedded_desc">曲のタグに保存された歌詞を、隣にある歌詞ファイルより先に読み込みます。次の曲から反映されます。</string>
+    <string name="tip_lyric_font_invalid">このフォントファイルは使用できません。.ttf、.otf、.ttc のフォントを選んでください。</string>
 </resources>

@@ -76,7 +76,7 @@ data class YosLyrics(
             return line.subList(1, end)
         }
 
-        private fun carriesTranslation(line: List<Pair<Float, String>>): Boolean =
+        fun carriesTranslation(line: List<Pair<Float, String>>): Boolean =
             line.size >= 5 && line[line.size - 1].second.isNotEmpty() &&
                     line[line.size - 2].second.isEmpty() && line[line.size - 3].second.isEmpty()
 

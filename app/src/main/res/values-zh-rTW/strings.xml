@@ -93,7 +93,7 @@
     <string name="settings_performance_ui_basic">基本</string>
     <string name="settings_performance_ui_blur_effect_desc">工具欄的模糊效果，可能導致性能問題。</string>
     <string name="settings_performance_ui_blur_effect_title">工具欄模糊</string>
-    <string name="settings_performance_lyric_style_font_weight_desc">設置後需要重啟應用生效。</string>
+    <string name="settings_performance_lyric_style_font_weight_desc">選擇歌詞的粗細。</string>
     <string name="playlist_shuffle_desc">當前正處於隨機播放模式。</string>
     <string name="page_library_playlists_music_total">%d 首歌曲</string>
     <string name="settings_performance_ui_nowplaying_background_effect">背景動態效果</string>
@@ -122,4 +122,23 @@
     <string name="settings_performance_ui_nowplaying_show_volume_bar">顯示音量條</string>
     <string name="settings_performance_ui_nowplaying_show_volume_bar_desc">在播放界面的下部顯示音量調節條。</string>
     <string name="settings_performance_ui_theme">主題</string>
+    <string name="settings_performance_lyric_custom">自訂</string>
+    <string name="settings_performance_lyric_font_file">選擇字型檔案</string>
+    <string name="settings_performance_lyric_font_file_default">系統預設</string>
+    <string name="settings_performance_lyric_font_file_reset">使用系統字型</string>
+    <string name="settings_performance_lyric_font_size">字型大小</string>
+    <string name="settings_performance_lyric_font_size_reset">重設字型大小</string>
+    <string name="settings_performance_lyric_font_size_reset_desc">重設歌詞字型大小。</string>
+    <string name="settings_performance_lyric_smart">智慧逐字歌詞</string>
+    <string name="settings_performance_lyric_smart_desc">將沒有逐字時間的歌詞依整行時間均勻推進，呈現類似逐字歌詞的效果。下一首歌曲起生效。</string>
+    <string name="settings_performance_lyric_offset">歌詞時間偏移</string>
+    <string name="settings_performance_lyric_offset_desc">調整所有歌詞的時間。負值延後歌詞，正值提前歌詞。</string>
+    <string name="settings_performance_lyric_transliteration">音譯</string>
+    <string name="settings_performance_lyric_transliteration_position">位置</string>
+    <string name="settings_performance_lyric_transliteration_above">歌詞上方</string>
+    <string name="settings_performance_lyric_transliteration_below">歌詞下方</string>
+    <string name="settings_performance_lyric_transliteration_desc">選擇音譯顯示在每行歌詞的上方或下方。</string>
+    <string name="settings_performance_lyric_prefer_embedded">優先使用內嵌歌詞</string>
+    <string name="settings_performance_lyric_prefer_embedded_desc">先讀取歌曲標籤中的歌詞，再讀取旁邊的歌詞檔案。下一首歌曲起生效。</string>
+    <string name="tip_lyric_font_invalid">無法使用此字型檔案，請選擇 .ttf、.otf 或 .ttc 字型。</string>
 </resources>

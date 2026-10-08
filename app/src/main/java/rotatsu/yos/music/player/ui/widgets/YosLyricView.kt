@@ -909,20 +909,32 @@ fun LazyItemScope.LyricItem(
         transliteration?.takeIf { list -> list.any { it.isNotBlank() } }
     }
     val romanPerWord = romanLine != null && !isNotOneByOne.value
-    val lineStyle = remember(otherSide, romanPerWord, rtlLine) {
+    val fontScale = SettingsLibrary.LyricFontScale
+    val fontWeightName = SettingsLibrary.LyricFontWeight
+    val balanced = SettingsLibrary.LyricLineBalance
+    val romanBelow = SettingsLibrary.LyricTransliterationBelow
+    val fontFamily = rememberLyricFontFamily()
+    val lineStyle = remember(
+        otherSide, romanPerWord, rtlLine, fontScale, fontWeightName, balanced, romanBelow, fontFamily
+    ) {
+        val main = lyricTextStyle(fontScale, fontWeightName, balanced, fontFamily)
         val base = when {
-            rtlLine -> MainTextStyle.copy(
+            rtlLine -> main.copy(
                 textAlign = if (otherSide) TextAlign.Left else TextAlign.Right
             )
 
-            otherSide -> MainTextStyle.copy(textAlign = TextAlign.End)
-            else -> MainTextStyle
+            otherSide -> main.copy(textAlign = TextAlign.End)
+            else -> main
         }
         if (romanPerWord) {
             base.copy(
                 lineHeight = (base.lineHeight.value + TransliterationBand.value).sp,
                 lineHeightStyle = LineHeightStyle(
-                    alignment = LineHeightStyle.Alignment.Bottom,
+                    alignment = if (romanBelow) {
+                        LineHeightStyle.Alignment.Top
+                    } else {
+                        LineHeightStyle.Alignment.Bottom
+                    },
                     trim = LineHeightStyle.Trim.None
                 )
             )
@@ -1166,9 +1178,9 @@ fun LazyItemScope.LyricItem(
                                         }
                                     }
 
-                                    if (romanLine != null && isNotOneByOne.value) {
+                                    val lineRoman: @Composable () -> Unit = {
                                         Text(
-                                            text = romanLine.joinToString(" ") { it.trim() }
+                                            text = romanLine.orEmpty().joinToString(" ") { it.trim() }
                                                 .trim(),
                                             fontSize = TransliterationStyle.fontSize,
                                             fontWeight = TransliterationStyle.fontWeight,
@@ -1187,6 +1199,8 @@ fun LazyItemScope.LyricItem(
                                                 .padding(top = 4.dp)
                                         )
                                     }
+
+                                    if (romanLine != null && isNotOneByOne.value && !romanBelow) lineRoman()
 
                                     Line(
                                         lines = mainLyric,
@@ -1275,7 +1289,9 @@ fun LazyItemScope.LyricItem(
                                                 mainLyric = mainLyric,
                                                 transliteration = romanLine,
                                                 measureResult = measureResult,
-                                                measurer = measurer
+                                                measurer = measurer,
+                                                below = romanBelow,
+                                                bandPx = TransliterationBand.toPx()
                                             )
                                         } else {
                                             emptyList()
@@ -1417,6 +1433,7 @@ fun LazyItemScope.LyricItem(
                                             )
                                         }
                                     }
+                                    if (romanLine != null && isNotOneByOne.value && romanBelow) lineRoman()
                                 }
                                 YosWrapper {
                                     AnimatedVisibility(showTranslation && translation != null) {
@@ -1440,7 +1457,8 @@ fun LazyItemScope.LyricItem(
 
                                             Text(
                                                 text = it,
-                                                fontSize = subTextSize.sp,
+                                                fontSize = (subTextSize * fontScale).sp,
+                                                fontFamily = fontFamily,
                                                 color = subTextBasicColor,
                                                 fontWeight = FontWeight.Normal,
                                                 modifier = Modifier
@@ -1452,7 +1470,7 @@ fun LazyItemScope.LyricItem(
                                                     }
                                                     .then(translationOtherSidePadding)
                                                     .padding(top = 5.dp),
-                                                lineHeight = (subTextSize + 5).sp,
+                                                lineHeight = (subTextSize * fontScale + 5).sp,
                                                 letterSpacing = 0.3.sp,
                                                 textAlign = textAlign
                                             )
@@ -1518,34 +1536,6 @@ fun CountdownAnimation(progress: () -> Float, colorLambda: () -> Color) {
         }
     }
 }
-val MainTextStyle = TextStyle(
-    fontSize = 30.5.sp,
-    lineHeight = 40.5.sp,
-    fontWeight =
-    when (SettingsLibrary.LyricFontWeight) {
-        "Thin" -> FontWeight.Thin
-        "ExtraLight" -> FontWeight.ExtraLight
-        "Light" -> FontWeight.Light
-        "Regular" -> FontWeight.Normal
-        "Medium" -> FontWeight.Medium
-        "SemiBold" -> FontWeight.SemiBold
-        "Bold" -> FontWeight.Bold
-        "ExtraBold" -> FontWeight.ExtraBold
-        "Black" -> FontWeight.Black
-        else -> FontWeight.ExtraBold
-    },
-    letterSpacing = 0.05.sp,
-    lineHeightStyle = LineHeightStyle(
-        alignment = LineHeightStyle.Alignment.Center,
-        trim = LineHeightStyle.Trim.None
-    ),
-    lineBreak = LineBreak(
-        strategy = if (SettingsLibrary.LyricLineBalance) LineBreak.Strategy.Balanced else LineBreak.Strategy.Simple,
-        LineBreak.Strictness.Default,
-        LineBreak.WordBreak.Default
-    )
-)
-
 /*val BackgroundTextStyle = TextStyle(
     fontSize = 34.sp,
     lineHeight = 42.sp,
@@ -1623,7 +1613,9 @@ private fun layoutTransliteration(
     mainLyric: List<Pair<Float, String>>,
     transliteration: List<String>,
     measureResult: TextLayoutResult,
-    measurer: TextMeasurer
+    measurer: TextMeasurer,
+    below: Boolean = false,
+    bandPx: Float = 0f
 ): List<RomanItem> {
     val items = ArrayList<RomanItem>()
     val text = measureResult.layoutInput.text.text
@@ -1653,7 +1645,7 @@ private fun layoutTransliteration(
                 items += RomanItem(
                     layout = layout,
                     x = box.left + (box.right - box.left - layout.size.width) / 2f,
-                    top = box.top,
+                    top = if (below) box.bottom - bandPx else box.top,
                     line = measureResult.getLineForOffset(at),
                     start = word.charStart(charIndex),
                     end = word.charEnd(charIndex)
@@ -1677,7 +1669,7 @@ private fun layoutTransliteration(
         items += RomanItem(
             layout = layout,
             x = left + (right - left - layout.size.width) / 2f,
-            top = startBox.top,
+            top = if (below) startBox.bottom - bandPx else startBox.top,
             line = line,
             start = word.start,
             end = word.end

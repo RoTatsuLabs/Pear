@@ -93,7 +93,7 @@
     <string name="settings_performance_ui_basic">基本</string>
     <string name="settings_performance_ui_blur_effect_desc">工具栏的模糊效果，可能导致性能问题。</string>
     <string name="settings_performance_ui_blur_effect_title">工具栏模糊</string>
-    <string name="settings_performance_lyric_style_font_weight_desc">设置后需要重启应用生效。</string>
+    <string name="settings_performance_lyric_style_font_weight_desc">选择歌词的粗细。</string>
     <string name="playlist_shuffle_desc">当前正处于随机播放模式。</string>
     <string name="page_library_playlists_music_total">%d 首歌曲</string>
     <string name="settings_performance_ui_nowplaying_background_effect">背景动态效果</string>
@@ -122,4 +122,23 @@
     <string name="settings_performance_ui_nowplaying_show_volume_bar">显示音量条</string>
     <string name="settings_performance_ui_nowplaying_show_volume_bar_desc">在播放界面的下部显示音量调节条。</string>
     <string name="settings_performance_ui_theme">主题</string>
+    <string name="settings_performance_lyric_custom">自定义</string>
+    <string name="settings_performance_lyric_font_file">选择字体文件</string>
+    <string name="settings_performance_lyric_font_file_default">系统默认</string>
+    <string name="settings_performance_lyric_font_file_reset">使用系统字体</string>
+    <string name="settings_performance_lyric_font_size">字体大小</string>
+    <string name="settings_performance_lyric_font_size_reset">重置字体大小</string>
+    <string name="settings_performance_lyric_font_size_reset_desc">重置歌词字体大小。</string>
+    <string name="settings_performance_lyric_smart">智能逐字歌词</string>
+    <string name="settings_performance_lyric_smart_desc">将没有逐字时间的歌词按整行时长均匀推进，呈现类似逐字歌词的效果。下一首歌曲起生效。</string>
+    <string name="settings_performance_lyric_offset">歌词时间偏移</string>
+    <string name="settings_performance_lyric_offset_desc">调整所有歌词的时间。负值延后歌词，正值提前歌词。</string>
+    <string name="settings_performance_lyric_transliteration">音译</string>
+    <string name="settings_performance_lyric_transliteration_position">位置</string>
+    <string name="settings_performance_lyric_transliteration_above">歌词上方</string>
+    <string name="settings_performance_lyric_transliteration_below">歌词下方</string>
+    <string name="settings_performance_lyric_transliteration_desc">选择音译显示在每行歌词的上方还是下方。</string>
+    <string name="settings_performance_lyric_prefer_embedded">优先使用内嵌歌词</string>
+    <string name="settings_performance_lyric_prefer_embedded_desc">先读取歌曲标签中的歌词，再读取旁边的歌词文件。下一首歌曲起生效。</string>
+    <string name="tip_lyric_font_invalid">无法使用此字体文件，请选择 .ttf、.otf 或 .ttc 字体。</string>
 </resources>
