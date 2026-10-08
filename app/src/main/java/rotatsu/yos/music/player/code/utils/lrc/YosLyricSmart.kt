@@ -95,12 +95,8 @@ object YosLyricSmart {
     }
 
     private fun isStandalone(codePoint: Int): Boolean =
-        when (Character.UnicodeScript.of(codePoint)) {
-            Character.UnicodeScript.HAN,
-            Character.UnicodeScript.HIRAGANA,
-            Character.UnicodeScript.KATAKANA,
-            Character.UnicodeScript.HANGUL -> true
-
+        when (YosScripts.of(codePoint)) {
+            YosScript.HAN, YosScript.KANA, YosScript.HANGUL -> true
             else -> false
         }
 
