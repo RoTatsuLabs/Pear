@@ -42,9 +42,9 @@ object PlayHistory {
     }
 
     private fun load(): List<String> =
-        mmkv.decodeString(KEY, "").orEmpty().split(SEPARATOR).filter { it.isNotBlank() }
+        mmkv.decodeString(KEY).orEmpty().split(SEPARATOR).filter { it.isNotBlank() }
 
     private fun save() {
-        mmkv.encodeString(KEY, ids.joinToString(SEPARATOR))
+        mmkv.encode(KEY, ids.joinToString(SEPARATOR))
     }
 }
