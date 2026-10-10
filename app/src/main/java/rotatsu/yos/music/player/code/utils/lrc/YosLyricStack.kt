@@ -17,8 +17,8 @@ internal object YosLyricStack {
     const val GAP_DOT_REST = 0.25f
     const val GAP_REST_SCALE = 0.76f
 
-    private val ALPHA = floatArrayOf(1f, 0.8f, 0.7f, 0.58f, 0.46f)
-    private val BLUR_DP = floatArrayOf(0f, 2.5f, 5f, 7.5f, 8f)
+    internal val ALPHA = floatArrayOf(1f, 0.8f, 0.7f, 0.58f, 0.46f)
+    internal val BLUR_DP = floatArrayOf(0f, 2.5f, 5f, 7.5f, 8f)
 
     fun alpha(distance: Int): Float = ALPHA[distance.coerceIn(0, ALPHA.lastIndex)]
 

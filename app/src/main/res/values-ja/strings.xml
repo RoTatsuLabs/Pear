@@ -85,6 +85,9 @@
     <string name="normal_button_sort_descending">降順</string>
     <string name="settings_performance_lyric_blur_effect">歌詞のぼかし</string>
     <string name="settings_performance_lyric_blur_effect_desc">歌詞ビューのぼかし効果、パフォーマンスに問題を引き起こす可能性があります。</string>
+    <string name="settings_performance_lyric_look">歌詞のスタイル</string>
+    <string name="settings_performance_lyric_look_select">スタイル</string>
+    <string name="settings_performance_lyric_look_desc">曲の再生中に歌詞行がフェード、ぼかし、スクロール、発光する方法を切り替えます。BitChordはPearの従来の見た目です。ArchiveTuneは歌っている行以外を同じ明るさに落とし、行ごとに少しずつぼかし、歌っている行を画面の低めの位置に置きます。</string>
     <string name="settings_performance_lyric_title">歌詞表示</string>
     <string name="settings_performance_lyric_style">スタイル</string>
     <string name="settings_performance_lyric_others">その他</string>

@@ -12,6 +12,7 @@ All notable changes to Pear are listed here, newest first.
 * Rebuild the Lyric Display settings with a live preview, sliders for the font size and weight, a custom font file and a reset for the font size.
 * Add a lyric timing offset, a Smart Word-by-Word Lyrics option, a Prefer Embedded Lyrics option, and a choice to show the transliteration above or below the lyrics.
 * Make the translate button larger.
+* Add a Lyric Style choice to Lyric Display. BitChord keeps the current look. ArchiveTune dims every other line to the same level, blurs them a little more per line, and rests the sung line lower on the screen.
 * Redraw the translate button as two speech bubbles in both its on and off looks, to match Apple Music.
 * Rework the README with a centered header, a short feature list and the build steps.
 * Rename the app to Pear. The launcher label, the settings text and the media notification channel no longer say Flamingo.

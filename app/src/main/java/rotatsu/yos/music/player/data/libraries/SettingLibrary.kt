@@ -123,6 +123,14 @@ object SettingsLibrary {
         initialValue = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     )
 
+    /** Which lyric look is used: bitchord or archivetune. */
+    @Stable
+    var LyricStyle by mutableDataSaverStateOf(
+        dataSaverInterface = SettingsSaver,
+        key = "settings_performance_lyric_style",
+        initialValue = "bitchord"
+    )
+
     /** Lyric text size as a multiple of the default. */
     @Stable
     var LyricFontScale by mutableDataSaverStateOf(

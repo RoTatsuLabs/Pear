@@ -111,6 +111,8 @@ import rotatsu.yos.music.player.code.utils.lrc.YosGlowWord
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricCredit
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricGlow
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricStack
+import rotatsu.yos.music.player.code.utils.lrc.YosLyricStyleSpec
+import rotatsu.yos.music.player.code.utils.lrc.YosLyricStyles
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricTiming
 import rotatsu.yos.music.player.code.utils.lrc.YosTextShaping
 import rotatsu.yos.music.player.code.utils.lrc.YosWordTiming
@@ -166,6 +168,9 @@ fun YosLyricView(
     val lyricsData = MediaViewModelObject.lyrics.value
     val lyricsMatch = lyricsData.entries === lrcEntries
     val credits = if (lyricsMatch) lyricsData.credits else emptyList()
+
+    val style = YosLyricStyles.of(SettingsLibrary.LyricStyle)
+    val styleEasing = remember(style) { style.easing() }
 
     //val thisLyricLines = MediaViewModelObject.mainLyricLines
     if (lrcEntries.isEmpty() || otherSideForLines.isEmpty() /*|| thisLyricLines.isEmpty()*/) {
@@ -235,8 +240,8 @@ fun YosLyricView(
 
         val height = rememberSaveable(key = "YosLyricView_height") { mutableIntStateOf(0) }
 
-        val targetWeight = 0.0618f
-        val targetOffset = rememberSaveable(height.intValue, key = "YosLyricView_targetOffset") {
+        val targetWeight = style.anchor
+        val targetOffset = rememberSaveable(height.intValue, targetWeight, key = "YosLyricView_targetOffset") {
             //println("计算边距使用：${height.intValue}")
             //println("计算边距为：${height.intValue * targetWeight}")
             height.intValue * targetWeight
@@ -428,12 +433,12 @@ fun YosLyricView(
                             str.ifBlank { null }
                         }
 
-                        val blur = remember(index) {
+                        val blur = remember(index, style) {
                             derivedStateOf {
                                 if (!showStateAnimation.value || !enableLyricScroll.value || index == currentLyricIndex.intValue || !blurLambda() || !supportBlur) {
                                     0f
                                 } else {
-                                    YosLyricStack.blurDp(abs(index - currentLyricIndex.intValue))
+                                    style.blurDp(abs(index - currentLyricIndex.intValue))
                                 }
                             }
                         }
@@ -470,20 +475,25 @@ fun YosLyricView(
                                 distanceLambda = { abs(index - currentLyricIndex.intValue) },
                                 browsingLambda = { !enableLyricScroll.value },
                                 staggerLambda = {
-                                    val run = scrollRun.value
-                                    val behind = if (run.delta >= 0f) {
-                                        index - focusIndex.intValue
+                                    if (!style.stagger) {
+                                        0f
                                     } else {
-                                        focusIndex.intValue - index
+                                        val run = scrollRun.value
+                                        val behind = if (run.delta >= 0f) {
+                                            index - focusIndex.intValue
+                                        } else {
+                                            focusIndex.intValue - index
+                                        }
+                                        YosLyricStack.stagger(
+                                            run.delta,
+                                            sinceRun.value,
+                                            run.durationMs,
+                                            behind,
+                                            styleEasing::transform
+                                        )
                                     }
-                                    YosLyricStack.stagger(
-                                        run.delta,
-                                        sinceRun.value,
-                                        run.durationMs,
-                                        behind,
-                                        LyricEasing::transform
-                                    )
                                 },
+                                style = style,
                                 nextTime = {
                                     if (index + 1 > lrcEntries.size - 1) {
                                         0f
@@ -513,7 +523,7 @@ fun YosLyricView(
         }
 
         YosWrapper {
-            LaunchedEffect(lrcEntries) {
+            LaunchedEffect(lrcEntries, style) {
                 val starts = lrcEntries.map { it.first().first }
                 while (true) {
                     val real = currentLyricIndex.intValue
@@ -524,7 +534,7 @@ fun YosLyricView(
                         val gap = YosLyricStack.gapBefore(lrcEntries, real + 1)
                         YosLyricStack.focusIndex(
                             starts,
-                            liveTimeLambda() + YosLyricStack.scrollLead(gap).toFloat()
+                            liveTimeLambda() + style.scrollLead(gap).toFloat()
                         )
                     }
                     focusIndex.intValue = if (ahead == real + 1) ahead else real
@@ -573,12 +583,12 @@ fun YosLyricView(
                             /*currentOffset.value = targetItem.value?.offset?:targetOffset.toInt()
                             scrollDistance.value = currentOffset - targetOffset*/
                             val focus = focusIndex.intValue
-                            val span = YosLyricStack.scrollLead(YosLyricStack.gapBefore(lrcEntries, focus))
+                            val span = style.scrollLead(YosLyricStack.gapBefore(lrcEntries, focus))
                             val delta = scrollDistance.value
                             scrollRun.value = ScrollRun(scrollRun.value.id + 1, delta, span)
                             scrollState.animateScrollBy(
                                 delta,
-                                animationSpec = tween(durationMillis = span, easing = LyricEasing)
+                                animationSpec = tween(durationMillis = span, easing = styleEasing)
                             )
                         } else {
                             scrollState.animateScrollToItem(
@@ -666,6 +676,7 @@ private fun LazyItemScope.Line(
     measurer: TextMeasurer,
     modifier: Modifier,
     viewAlign: Alignment.Horizontal,
+    glowRadius: Dp = GlowRadius,
     glow: (CacheDrawScope.(TextLayoutResult) -> DrawResult)? = null,
     draw: CacheDrawScope.(Constraints, TextLayoutResult) -> DrawResult
 ) =
@@ -758,7 +769,7 @@ private fun LazyItemScope.Line(
                         Spacer(
                             Modifier
                                 .fillMaxSize()
-                                .blur(GlowRadius, BlurredEdgeTreatment.Unbounded)
+                                .blur(glowRadius, BlurredEdgeTreatment.Unbounded)
                                 .drawWithCache { drawGlow(measureResult) }
                         )
                     }.first().measure(
@@ -879,6 +890,7 @@ fun LazyItemScope.LyricItem(
     staggerLambda: () -> Float = { 0f },
     otherSide: Boolean,
     liveTimeLambda: () -> Int,
+    style: YosLyricStyleSpec,
     onClick: () -> Unit
 ) {
     println("重组：歌词 $mainLyric")
@@ -891,7 +903,7 @@ fun LazyItemScope.LyricItem(
     val viewAlign = if (atEnd) Alignment.End else Alignment.Start
 
     val focusedColor = Color(0xFFFFFFFF)
-    val unfocusedColor = Color.White.copy(alpha = YosLyricStack.UNSUNG_ALPHA)
+    val unfocusedColor = Color.White.copy(alpha = style.unsungAlpha)
     //Color(0x33FFFFFF)
 
     //val focusedSolidBrush = SolidColor(focusedColor)
@@ -999,8 +1011,21 @@ fun LazyItemScope.LyricItem(
                 )
             }*/
 
-            val settleSpec: AnimationSpec<Float> = remember {
-                TweenSpec(durationMillis = YosLyricStack.SETTLE_MS, easing = LyricEasing)
+            val styleEase = remember(style) { style.easing() }
+            val settleSpec: AnimationSpec<Float> = remember(style) {
+                TweenSpec(durationMillis = style.settleMs, easing = styleEase)
+            }
+            val scaleInSpec: AnimationSpec<Float> = remember(style) {
+                TweenSpec(durationMillis = style.scaleActiveMs, easing = styleEase)
+            }
+            val scaleOutSpec: AnimationSpec<Float> = remember(style) {
+                TweenSpec(durationMillis = style.scaleInactiveMs, easing = styleEase)
+            }
+            val alphaInSpec: AnimationSpec<Float> = remember(style) {
+                TweenSpec(durationMillis = style.alphaActiveMs, easing = styleEase)
+            }
+            val alphaOutSpec: AnimationSpec<Float> = remember(style) {
+                TweenSpec(durationMillis = style.alphaInactiveMs, easing = styleEase)
             }
 
             val interaction = remember { MutableInteractionSource() }
@@ -1009,12 +1034,14 @@ fun LazyItemScope.LyricItem(
                 targetValue = when {
                     pressed -> YosLyricStack.PRESSED_SCALE
                     isCurrentLambda() -> 1f
-                    else -> YosLyricStack.INACTIVE_SCALE
+                    else -> style.inactiveScale
                 },
                 animationSpec = if (pressed) {
                     tween(YosLyricStack.PRESS_MS, easing = LyricEasing)
+                } else if (isCurrentLambda()) {
+                    scaleInSpec
                 } else {
-                    settleSpec
+                    scaleOutSpec
                 }
             )
 
@@ -1098,7 +1125,7 @@ fun LazyItemScope.LyricItem(
 
                         val blurValue = animateDpAsState(
                             blur().dp,
-                            tween(YosLyricStack.SETTLE_MS, easing = LyricEasing)
+                            tween(style.blurMs, easing = styleEase)
                         )
 
                         val blurModifier = remember(mainLyric) {
@@ -1131,11 +1158,11 @@ fun LazyItemScope.LyricItem(
 
                                 YosWrapper {
                                     val thisAlphaAnimated = animateFloatAsState(
-                                        targetValue = YosLyricStack.lineAlpha(
+                                        targetValue = style.lineAlpha(
                                             if (isCurrentLambda()) 0 else distanceLambda().coerceAtLeast(1),
                                             browsingLambda()
                                         ),
-                                        animationSpec = settleSpec
+                                        animationSpec = if (isCurrentLambda()) alphaInSpec else alphaOutSpec
                                     )
 
                                     val thisAlpha = remember(mainLyric) {
@@ -1191,7 +1218,7 @@ fun LazyItemScope.LyricItem(
                                             modifier = Modifier
                                                 .graphicsLayer {
                                                     this.alpha = thisAlpha.value *
-                                                            (1f - (1f - YosLyricStack.UNSUNG_ALPHA) * pastFade.value)
+                                                            (1f - (1f - style.unsungAlpha) * pastFade.value)
                                                     compositingStrategy =
                                                         CompositingStrategy.ModulateAlpha
                                                 }
@@ -1221,6 +1248,7 @@ fun LazyItemScope.LyricItem(
                                                 onClick()
                                             },
                                         viewAlign = viewAlign,
+                                        glowRadius = style.glowRadiusDp.dp,
                                         glow = if (glowWords.isEmpty()) {
                                             null
                                         } else {
@@ -1243,7 +1271,7 @@ fun LazyItemScope.LyricItem(
                                                     chars.fastForEach { c ->
                                                         val bloom = c.word.bloom(c.index, time)
                                                         if (bloom <= 0.01f) return@fastForEach
-                                                        val lift = 4 * easing.transform(
+                                                        val lift = style.liftPx * easing.transform(
                                                             YosLyricTiming.progress(
                                                                 time,
                                                                 c.word.timing.start,
@@ -1259,7 +1287,7 @@ fun LazyItemScope.LyricItem(
                                                             ) {
                                                                 drawText(
                                                                     textLayoutResult = layout,
-                                                                    color = focusedColor.copy(alpha = GlowAlpha * bloom)
+                                                                    color = focusedColor.copy(alpha = style.glowAlpha * bloom)
                                                                 )
                                                             }
                                                         }
@@ -1315,7 +1343,7 @@ fun LazyItemScope.LyricItem(
                                                         measureResult,
                                                         unfocusedColor,
                                                         shaped,
-                                                        Offset(0F, -4F)
+                                                        Offset(0F, -style.liftPx)
                                                     )
                                                     drawTransliterationFlat(romans, unfocusedColor)
                                                 }
@@ -1339,7 +1367,8 @@ fun LazyItemScope.LyricItem(
                                                     shapedWords,
                                                     time,
                                                     finishedColor,
-                                                    unfocusedColor
+                                                    unfocusedColor,
+                                                    style.liftPx
                                                 )
                                                 drawTransliterationProgress(
                                                     items = romans,
@@ -1359,7 +1388,7 @@ fun LazyItemScope.LyricItem(
                                                 word.end
                                             )
                                             val easedPercent = easing.transform(groupPercent)
-                                            val topLeftWeight = 4 * easedPercent
+                                            val topLeftWeight = style.liftPx * easedPercent
 
                                             thisWord.forEachIndexed { charIndex, char ->
                                                 val charWord = char.toString()
@@ -1568,7 +1597,6 @@ private val TransliterationTextStyle = TextStyle(
 
 private val GlowRadius = 6.dp
 private val GlowRoom = 12.dp
-private const val GlowAlpha = 0.62f
 private const val GlowSlot = "glow"
 
 /** A sweep from [startX] to [endX]: [finished] before [percent], [unfocused] after, blended over [softness]. */
@@ -1813,13 +1841,14 @@ private fun DrawScope.drawShapedSweep(
     words: List<ShapedWord>,
     time: Float,
     finishedColor: Color,
-    unfocusedColor: Color
+    unfocusedColor: Color,
+    liftPx: Float
 ) {
     val pad = 24f
     drawIntoCanvas { canvas ->
         canvas.saveLayer(Rect(-pad, -pad, size.width + pad, size.height + pad), Paint())
         words.fastForEach { word ->
-            val lift = 4 * easing.transform(YosLyricTiming.progress(time, word.start, word.end))
+            val lift = liftPx * easing.transform(YosLyricTiming.progress(time, word.start, word.end))
             translate(0f, -lift) {
                 clipRect(word.box.left, word.box.top, word.box.right, word.box.bottom) {
                     drawText(textLayoutResult = layout, color = Color.White)
@@ -1827,7 +1856,7 @@ private fun DrawScope.drawShapedSweep(
             }
         }
         words.fastForEach { word ->
-            val lift = 4 * easing.transform(YosLyricTiming.progress(time, word.start, word.end))
+            val lift = liftPx * easing.transform(YosLyricTiming.progress(time, word.start, word.end))
             translate(0f, -lift) {
                 word.chars.fastForEach { c ->
                     if (!c.ink) return@fastForEach
@@ -1913,3 +1942,7 @@ fun processWords(input: String): List<String> {
     }
     return result
 }*/
+
+/** The cubic bezier easing of a look. */
+private fun YosLyricStyleSpec.easing(): CubicBezierEasing =
+    CubicBezierEasing(easingPoints[0], easingPoints[1], easingPoints[2], easingPoints[3])

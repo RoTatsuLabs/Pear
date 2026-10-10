@@ -85,6 +85,9 @@
     <string name="normal_button_sort_descending">降序</string>
     <string name="settings_performance_lyric_blur_effect">歌词模糊</string>
     <string name="settings_performance_lyric_blur_effect_desc">歌词视图的模糊效果，可能导致性能问题。</string>
+    <string name="settings_performance_lyric_look">歌词样式</string>
+    <string name="settings_performance_lyric_look_select">样式</string>
+    <string name="settings_performance_lyric_look_desc">切换播放时歌词行的淡入淡出、模糊、滚动和发光方式。BitChord 是 Pear 一直使用的外观。ArchiveTune 会把非当前行统一调暗，按行逐渐加深模糊，并让当前行停在屏幕偏下的位置。</string>
     <string name="settings_performance_lyric_title">歌词显示</string>
     <string name="settings_performance_lyric_style">样式</string>
     <string name="settings_performance_lyric_others">其它</string>

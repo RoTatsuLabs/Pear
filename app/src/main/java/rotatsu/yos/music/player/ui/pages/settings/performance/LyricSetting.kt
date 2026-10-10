@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import rotatsu.yos.music.player.R
+import rotatsu.yos.music.player.code.utils.lrc.YosLyricStyle
 import rotatsu.yos.music.player.data.libraries.SettingsLibrary
 import rotatsu.yos.music.player.ui.pages.settings.Divider
 import rotatsu.yos.music.player.ui.pages.settings.GroupSpacer
@@ -51,6 +52,30 @@ fun LyricSetting(navController: NavController) =
                         RoundColumn {
                             LyricPreview()
                         }
+
+                        GroupSpacer()
+                        ListHeader(content = stringResource(id = R.string.settings_performance_lyric_look))
+                        RoundColumn {
+                            val bitChord = stringResource(id = R.string.settings_performance_lyric_look_bitchord)
+                            val archiveTune = stringResource(id = R.string.settings_performance_lyric_look_archivetune)
+                            SelectItem(
+                                title = stringResource(id = R.string.settings_performance_lyric_look_select),
+                                items = listOf(bitChord, archiveTune),
+                                value = if (YosLyricStyle.fromId(SettingsLibrary.LyricStyle) == YosLyricStyle.ARCHIVETUNE) {
+                                    archiveTune
+                                } else {
+                                    bitChord
+                                },
+                                onValueChange = {
+                                    SettingsLibrary.LyricStyle = if (it == archiveTune) {
+                                        YosLyricStyle.ARCHIVETUNE.id
+                                    } else {
+                                        YosLyricStyle.BITCHORD.id
+                                    }
+                                }
+                            )
+                        }
+                        ListHeader(content = stringResource(id = R.string.settings_performance_lyric_look_desc))
 
                         GroupSpacer()
                         ListHeader(content = stringResource(id = R.string.settings_performance_lyric_custom))

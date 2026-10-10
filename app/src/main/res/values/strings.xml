@@ -85,6 +85,11 @@
     <string name="normal_button_sort_descending">Descending</string>
     <string name="settings_performance_lyric_blur_effect">Lyric Blur</string>
     <string name="settings_performance_lyric_blur_effect_desc">Blur effect of the lyrics view, which may cause performance issues.</string>
+    <string name="settings_performance_lyric_look">Lyric Style</string>
+    <string name="settings_performance_lyric_look_select">Style</string>
+    <string name="settings_performance_lyric_look_desc">Changes how lines fade, blur, scroll and glow while a song plays. BitChord is the look Pear always had. ArchiveTune dims every other line to the same level, blurs them a little more per line, and rests the sung line lower on the screen.</string>
+    <string name="settings_performance_lyric_look_bitchord" translatable="false">BitChord</string>
+    <string name="settings_performance_lyric_look_archivetune" translatable="false">ArchiveTune</string>
     <string name="settings_performance_lyric_title">Lyric Display</string>
     <string name="settings_performance_lyric_style">Style</string>
     <string name="settings_performance_lyric_others">Others</string>
