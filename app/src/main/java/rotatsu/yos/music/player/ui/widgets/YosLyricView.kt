@@ -1271,7 +1271,7 @@ fun LazyItemScope.LyricItem(
                                                     chars.fastForEach { c ->
                                                         val bloom = c.word.bloom(c.index, time)
                                                         if (bloom <= 0.01f) return@fastForEach
-                                                        val lift = style.liftPx * easing.transform(
+                                                        val lift = style.liftDp * density * easing.transform(
                                                             YosLyricTiming.progress(
                                                                 time,
                                                                 c.word.timing.start,
@@ -1343,7 +1343,7 @@ fun LazyItemScope.LyricItem(
                                                         measureResult,
                                                         unfocusedColor,
                                                         shaped,
-                                                        Offset(0F, -style.liftPx)
+                                                        Offset(0F, -style.liftDp * density)
                                                     )
                                                     drawTransliterationFlat(romans, unfocusedColor)
                                                 }
@@ -1368,7 +1368,7 @@ fun LazyItemScope.LyricItem(
                                                     time,
                                                     finishedColor,
                                                     unfocusedColor,
-                                                    style.liftPx
+                                                    style.liftDp * density
                                                 )
                                                 drawTransliterationProgress(
                                                     items = romans,
@@ -1388,7 +1388,7 @@ fun LazyItemScope.LyricItem(
                                                 word.end
                                             )
                                             val easedPercent = easing.transform(groupPercent)
-                                            val topLeftWeight = style.liftPx * easedPercent
+                                            val topLeftWeight = style.liftDp * density * easedPercent
 
                                             thisWord.forEachIndexed { charIndex, char ->
                                                 val charWord = char.toString()

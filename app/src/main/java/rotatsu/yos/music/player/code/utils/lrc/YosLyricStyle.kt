@@ -38,8 +38,8 @@ class YosLyricStyleSpec(
     val stagger: Boolean,
     val glowAlpha: Float,
     val glowRadiusDp: Float,
-    /** How far a sung word rises, in pixels. */
-    val liftPx: Float
+    /** How far a sung word rises, in dp. */
+    val liftDp: Float
 ) {
     fun alpha(distance: Int): Float = alphaByDistance[distance.coerceIn(0, alphaByDistance.lastIndex)]
 
@@ -84,7 +84,7 @@ internal object YosLyricStyles {
         stagger = true,
         glowAlpha = 0.62f,
         glowRadiusDp = 6f,
-        liftPx = 4f
+        liftDp = 2f
     )
 
     private val archiveTune = YosLyricStyleSpec(
@@ -105,7 +105,7 @@ internal object YosLyricStyles {
         stagger = false,
         glowAlpha = 0.4f,
         glowRadiusDp = 4f,
-        liftPx = 0f
+        liftDp = 0f
     )
 
     fun of(style: YosLyricStyle): YosLyricStyleSpec = when (style) {

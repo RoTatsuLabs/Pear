@@ -68,7 +68,7 @@ class YosLyricStyleTest {
         }
         assertEquals(1f, archiveTune.blurDp(1))
         assertEquals(4f, archiveTune.blurDp(4))
-        assertTrue(archiveTune.blurDp(2) < bitChord.blurDp(2))
+        assertTrue(archiveTune.blurDp(5) > bitChord.blurDp(5))
     }
 
     @Test
@@ -77,7 +77,7 @@ class YosLyricStyleTest {
         assertEquals(600, archiveTune.scaleActiveMs)
         assertEquals(300, archiveTune.scaleInactiveMs)
         assertEquals(0.38f, archiveTune.anchor)
-        assertEquals(0f, archiveTune.liftPx)
+        assertEquals(0f, archiveTune.liftDp)
     }
 
     @Test

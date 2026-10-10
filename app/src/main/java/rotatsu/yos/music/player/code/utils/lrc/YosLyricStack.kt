@@ -5,7 +5,7 @@ internal object YosLyricStack {
 
     const val SETTLE_MS = 400
     const val INACTIVE_SCALE = 0.98f
-    const val UNSUNG_ALPHA = 0.5f
+    const val UNSUNG_ALPHA = 0.45f
     const val BROWSING_ALPHA = 0.8f
     const val PRESSED_SCALE = 0.96f
     const val PRESS_MS = 120
@@ -18,7 +18,7 @@ internal object YosLyricStack {
     const val GAP_REST_SCALE = 0.76f
 
     internal val ALPHA = floatArrayOf(1f, 0.8f, 0.7f, 0.58f, 0.46f)
-    internal val BLUR_DP = floatArrayOf(0f, 2.5f, 5f, 7.5f, 8f)
+    internal val BLUR_DP = floatArrayOf(0f, 1f, 1f, 1.7f, 2.4f)
 
     fun alpha(distance: Int): Float = ALPHA[distance.coerceIn(0, ALPHA.lastIndex)]
 
