@@ -39,7 +39,9 @@ class YosLyricStyleSpec(
     val glowAlpha: Float,
     val glowRadiusDp: Float,
     /** How far a sung word rises, in dp. */
-    val liftDp: Float
+    val liftDp: Float,
+    /** Whether word synced lines are drawn by BitChord's renderer instead of Pear's own. */
+    val bitChordWords: Boolean = false
 ) {
     fun alpha(distance: Int): Float = alphaByDistance[distance.coerceIn(0, alphaByDistance.lastIndex)]
 
@@ -84,7 +86,8 @@ internal object YosLyricStyles {
         stagger = true,
         glowAlpha = 0.62f,
         glowRadiusDp = 6f,
-        liftDp = 2f
+        liftDp = 2f,
+        bitChordWords = true
     )
 
     private val archiveTune = YosLyricStyleSpec(

@@ -110,6 +110,7 @@ import kotlinx.coroutines.withContext
 import rotatsu.yos.music.player.code.utils.lrc.YosGlowWord
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricCredit
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricGlow
+import rotatsu.yos.music.player.code.utils.lrc.YosBcLines
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricStack
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricStyleSpec
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricStyles
@@ -473,6 +474,7 @@ fun YosLyricView(
                                 measurer = measurer,
                                 isLyricEmpty = { isLyricEmpty.value },
                                 distanceLambda = { abs(index - currentLyricIndex.intValue) },
+                                sungLambda = { index < currentLyricIndex.intValue },
                                 browsingLambda = { !enableLyricScroll.value },
                                 staggerLambda = {
                                     if (!style.stagger) {
@@ -890,6 +892,7 @@ fun LazyItemScope.LyricItem(
     staggerLambda: () -> Float = { 0f },
     otherSide: Boolean,
     liveTimeLambda: () -> Int,
+    sungLambda: () -> Boolean = { false },
     style: YosLyricStyleSpec,
     onClick: () -> Unit
 ) {
@@ -1229,7 +1232,68 @@ fun LazyItemScope.LyricItem(
 
                                     if (romanLine != null && isNotOneByOne.value && !romanBelow) lineRoman()
 
-                                    Line(
+                                    // BitChord's own renderer for word synced lines. A line with
+                                    // transliteration per word, or text that is shaped, keeps Pear's.
+                                    val bitChordLine = remember(mainLyric, style, romanPerWord, rtlLine) {
+                                        if (!style.bitChordWords || isNotOneByOne.value || romanPerWord || rtlLine) {
+                                            null
+                                        } else {
+                                            YosBcLines.fromPairs(mainLyric).takeIf {
+                                                it.isWordSynced && !YosTextShaping.needsShapedDraw(it.text)
+                                            }
+                                        }
+                                    }
+                                    val bitChordGlow = animateFloatAsState(
+                                        targetValue = if (
+                                            bitChordLine != null && isCurrentLambda() && !browsingLambda() &&
+                                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                                        ) {
+                                            style.glowAlpha
+                                        } else {
+                                            0f
+                                        },
+                                        animationSpec = tween(durationMillis = 420),
+                                        label = "bitChordGlow"
+                                    )
+                                    val bitChordTail = animateFloatAsState(
+                                        targetValue = if (sungLambda()) 1f else style.unsungAlpha,
+                                        label = "bitChordTail"
+                                    )
+
+                                    if (bitChordLine != null) {
+                                        Column(
+                                            horizontalAlignment = viewAlign,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .graphicsLayer {
+                                                    compositingStrategy = CompositingStrategy.ModulateAlpha
+                                                }
+                                        ) {
+                                            YosBitChordLine(
+                                                line = bitChordLine,
+                                                clock = liveTime,
+                                                style = lineStyle,
+                                                dimAlpha = bitChordTail.value,
+                                                modifier = Modifier
+                                                    .graphicsLayer {
+                                                        this.alpha = thisAlpha.value
+                                                        compositingStrategy =
+                                                            CompositingStrategy.ModulateAlpha
+                                                    }
+                                                    .padding(vertical = 4.dp)
+                                                    .then(otherSidePadding.value)
+                                                    .clickable(
+                                                        indication = null,
+                                                        interactionSource = interaction
+                                                    ) {
+                                                        onClick()
+                                                    },
+                                                glowAlpha = bitChordGlow.value,
+                                                glowRadius = style.glowRadiusDp.dp,
+                                                feather = isCurrentLambda() && !browsingLambda()
+                                            )
+                                        }
+                                    } else Line(
                                         lines = mainLyric,
                                         style = lineStyle,
                                         measurer = measurer,
