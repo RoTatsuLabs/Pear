@@ -14,7 +14,7 @@ object PlayHistoryList {
     /** The songs of [ids] in that order, skipping ids that are no longer in [songs]. */
     fun resolve(songs: List<YosMediaItem>, ids: List<String>): List<YosMediaItem> {
         val byId = HashMap<String, YosMediaItem>(songs.size)
-        for (song in songs) song.mediaId?.let { byId.putIfAbsent(it, song) }
+        for (song in songs) song.mediaId?.let { byId.getOrPut(it) { song } }
         return ids.mapNotNull { byId[it] }
     }
 }
