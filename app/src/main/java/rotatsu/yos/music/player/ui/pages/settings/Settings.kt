@@ -152,14 +152,6 @@ fun Settings(navController: NavController) =
                         }
 
                         GroupSpacer()
-                        ListHeader(stringResource(id = R.string.settings_experimental))
-                        RoundColumn {
-                            LabelItem(title = stringResource(id = R.string.settings_experimental_vocal_separation)) {
-                                navController.toUI(UI.Settings.VocalSeparation)
-                            }
-                        }
-
-                        GroupSpacer()
                         ListHeader(stringResource(id = R.string.settings_others))
                         RoundColumn {
                             LabelItem(

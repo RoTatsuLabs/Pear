@@ -151,9 +151,4 @@
     <string name="settings_audio_crossfade_duration_desc">Longer transitions create more overlap between songs.</string>
     <string name="home_recently_played_title">Recently Played</string>
     <string name="home_recently_played_empty">Songs you play will show up here.</string>
-    <string name="settings_experimental">Experimental Options</string>
-    <string name="settings_experimental_vocal_separation">Vocal Separation</string>
-    <string name="settings_experimental_vocal_gpu">GPU Acceleration</string>
-    <string name="settings_experimental_vocal_gpu_desc">Use LiteRT GPU acceleration for vocal separation. Compatibility, power use, and performance vary by device.</string>
-    <string name="settings_experimental_vocal_gpu_note">Changes apply after the playback service is recreated. GPU acceleration is disabled automatically only after repeated GPU failures or extremely abnormal performance.</string>
 </resources>

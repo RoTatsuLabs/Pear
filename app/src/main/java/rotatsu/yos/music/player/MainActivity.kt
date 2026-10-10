@@ -136,7 +136,6 @@ import rotatsu.yos.music.player.ui.pages.settings.extend.statusBarLyric.LyricGet
 import rotatsu.yos.music.player.ui.pages.settings.library.LibraryOverview
 import rotatsu.yos.music.player.ui.pages.settings.others.About
 import rotatsu.yos.music.player.ui.pages.settings.audio.CrossfadeSetting
-import rotatsu.yos.music.player.ui.pages.settings.experimental.VocalSeparationSetting
 import rotatsu.yos.music.player.ui.pages.settings.performance.LyricSetting
 import rotatsu.yos.music.player.ui.pages.settings.performance.NotificationSetting
 import rotatsu.yos.music.player.ui.pages.settings.performance.userinterface.ScreenCornerSetDialog
@@ -484,9 +483,6 @@ class MainActivity : BaseActivity() {
                                             }
                                             composable(UI.Settings.CrossfadeSetting) {
                                                 CrossfadeSetting(navController)
-                                            }
-                                            composable(UI.Settings.VocalSeparation) {
-                                                VocalSeparationSetting(navController)
                                             }
                                             composable(UI.Settings.About) {
                                                 About(

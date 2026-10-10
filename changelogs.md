@@ -8,7 +8,6 @@ All notable changes to Pear are listed here, newest first.
 * Add a Recently Played row to Home with a page for the full list. Songs are added as they start playing, unless Listening History is turned off.
 * Redraw the Featured Picks cards on Home smaller, with the cover filling the card and its colours fading in under the song name.
 * Make the translate button on the lyrics page a little smaller.
-* Add an Experimental Options group in Settings with a Vocal Separation page that holds a GPU Acceleration switch. Vocal separation itself is not built yet.
 * Add a Crossfade setting that overlaps the end of a song with the start of the next one. It has an on switch and a transition length from 1 to 12 seconds, and it only runs when a song ends by itself.
 * Rebuild the Lyric Display settings with a live preview, sliders for the font size and weight, a custom font file and a reset for the font size.
 * Add a lyric timing offset, a Smart Word-by-Word Lyrics option, a Prefer Embedded Lyrics option, and a choice to show the transliteration above or below the lyrics.

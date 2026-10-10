@@ -148,9 +148,4 @@
     <string name="settings_audio_crossfade_duration_desc">过渡时间越长，歌曲之间的重叠越多。</string>
     <string name="home_recently_played_title">最近播放</string>
     <string name="home_recently_played_empty">播放过的歌曲会显示在这里。</string>
-    <string name="settings_experimental">实验性选项</string>
-    <string name="settings_experimental_vocal_separation">人声分离</string>
-    <string name="settings_experimental_vocal_gpu">GPU 加速</string>
-    <string name="settings_experimental_vocal_gpu_desc">使用 LiteRT GPU 加速进行人声分离。兼容性、功耗和性能因设备而异。</string>
-    <string name="settings_experimental_vocal_gpu_note">更改将在播放服务重新创建后生效。仅在 GPU 反复失败或性能极度异常时才会自动禁用 GPU 加速。</string>
 </resources>
