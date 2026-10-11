@@ -199,7 +199,7 @@ internal fun YosBitChordLine(
  * Lets a box draw [room] outside its own bounds. The box is measured that much larger on every
  * side, so its text wraps where it would without the room, and then reports its size without it.
  */
-private fun Modifier.bleed(room: Dp): Modifier = layout { measurable, constraints ->
+internal fun Modifier.bleed(room: Dp): Modifier = layout { measurable, constraints ->
     val inset = room.roundToPx()
     val placeable = measurable.measure(constraints.offset(horizontal = inset * 2, vertical = inset * 2))
     layout(

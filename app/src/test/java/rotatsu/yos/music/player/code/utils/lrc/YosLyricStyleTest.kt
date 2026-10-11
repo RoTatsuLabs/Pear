@@ -100,4 +100,12 @@ class YosLyricStyleTest {
             assertTrue(spec.easingPoints[0] in 0f..1f && spec.easingPoints[2] in 0f..1f)
         }
     }
+
+    @Test
+    fun eachLookNamesTheRendererThatDrawsItsWordSyncedLines() {
+        assertTrue(bitChord.bitChordWords && !bitChord.archiveTuneWords)
+        assertTrue(archiveTune.archiveTuneWords && !archiveTune.bitChordWords)
+        assertEquals(1f, archiveTune.scaleOriginY)
+        assertEquals(0.5f, bitChord.scaleOriginY)
+    }
 }

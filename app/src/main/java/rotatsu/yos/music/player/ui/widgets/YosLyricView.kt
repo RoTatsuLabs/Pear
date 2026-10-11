@@ -110,6 +110,7 @@ import kotlinx.coroutines.withContext
 import rotatsu.yos.music.player.code.utils.lrc.YosGlowWord
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricCredit
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricGlow
+import rotatsu.yos.music.player.code.utils.lrc.YosAtLines
 import rotatsu.yos.music.player.code.utils.lrc.YosBcLines
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricStack
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricStyleSpec
@@ -1002,10 +1003,10 @@ fun LazyItemScope.LyricItem(
             val otherSideTransformOrigin =
                 if (atEnd) TransformOrigin(
                     1f,
-                    0.5f
+                    style.scaleOriginY
                 ) else TransformOrigin(
                     0f,
-                    0.5f
+                    style.scaleOriginY
                 )
 
             /*val otherSideThisLine = remember(mainLyric) {
@@ -1243,6 +1244,20 @@ fun LazyItemScope.LyricItem(
                                             }
                                         }
                                     }
+                                    // ArchiveTune's renderer, for the same lines.
+                                    val archiveTuneLine = remember(mainLyric, style, romanPerWord, rtlLine) {
+                                        if (!style.archiveTuneWords || isNotOneByOne.value || romanPerWord || rtlLine) {
+                                            null
+                                        } else {
+                                            YosAtLines.fromPairs(mainLyric).takeIf {
+                                                it.isAnimated && !YosTextShaping.needsShapedDraw(it.text)
+                                            }
+                                        }
+                                    }
+                                    val archiveTuneAlpha = animateFloatAsState(
+                                        targetValue = if (isCurrentLambda()) 1f else 0.4f,
+                                        label = "archiveTuneAlpha"
+                                    )
                                     val bitChordGlow = animateFloatAsState(
                                         targetValue = if (
                                             bitChordLine != null && isCurrentLambda() && !browsingLambda() &&
@@ -1260,7 +1275,41 @@ fun LazyItemScope.LyricItem(
                                         label = "bitChordTail"
                                     )
 
-                                    if (bitChordLine != null) {
+                                    if (archiveTuneLine != null) {
+                                        Column(
+                                            horizontalAlignment = viewAlign,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .graphicsLayer {
+                                                    compositingStrategy = CompositingStrategy.ModulateAlpha
+                                                }
+                                        ) {
+                                            YosArchiveTuneLine(
+                                                line = archiveTuneLine,
+                                                clock = liveTime,
+                                                mode = when {
+                                                    isCurrentLambda() -> AT_CURRENT
+                                                    sungLambda() -> AT_SUNG
+                                                    else -> AT_UPCOMING
+                                                },
+                                                style = lineStyle,
+                                                modifier = Modifier
+                                                    .graphicsLayer {
+                                                        this.alpha = thisAlpha.value * archiveTuneAlpha.value
+                                                        compositingStrategy =
+                                                            CompositingStrategy.ModulateAlpha
+                                                    }
+                                                    .padding(vertical = 4.dp)
+                                                    .then(otherSidePadding.value)
+                                                    .clickable(
+                                                        indication = null,
+                                                        interactionSource = interaction
+                                                    ) {
+                                                        onClick()
+                                                    }
+                                            )
+                                        }
+                                    } else if (bitChordLine != null) {
                                         Column(
                                             horizontalAlignment = viewAlign,
                                             modifier = Modifier
