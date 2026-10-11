@@ -235,8 +235,10 @@ private fun DrawScope.drawRow(layout: TextLayoutResult, row: AtRow, time: Int, f
 
     if (masked) {
         val center = row.sweep.center(time)
-        val band = (row.bottom - row.top) / 2f
-        clipRect(top = row.top - band, bottom = row.bottom + band) {
+        // Exactly this row. A band any taller reaches into the row above, which is already lit, and
+        // dims its right side while this one sweeps. Words start a little low, so the mask goes down
+        // by that much to take the bottoms of their letters with it. The row below is not drawn yet.
+        clipRect(top = row.top, bottom = row.bottom + YosAtEffects.LIFT_PX) {
             drawRect(
                 brush = Brush.horizontalGradient(
                     0f to Color.White,
