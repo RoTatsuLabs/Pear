@@ -15,6 +15,7 @@ All notable changes to Pear are listed here, newest first.
 * Add a Lyric Style choice to Lyric Display. BitChord keeps the current look. ArchiveTune dims every other line to the same level, blurs them a little more per line, and rests the sung line lower on the screen.
 * Draw word synced lyrics in the BitChord style, modeled on BitChord's lyric view: a feathered sweep, words that lift as they are sung, and held words that swell letter by letter and glow.
 * Draw word synced lyrics in the ArchiveTune style, modeled on ArchiveTune's lyric view: words start a little low and rise as they are sung, long held words swell and glow letter by letter, and a soft edge sweeps the line from dim to lit.
+* Replace the plain dark gradient under the full screen cover with a colour mesh made from the cover itself, modeled on the backdrop behind BitChord's player.
 * Redraw the translate button as two speech bubbles in both its on and off looks, to match Apple Music.
 * Rework the README with a centered header, a short feature list and the build steps.
 * Rename the app to Pear. The launcher label, the settings text and the media notification channel no longer say Flamingo.
