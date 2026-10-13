@@ -1,6 +1,5 @@
 package rotatsu.yos.music.player.ui.pages
 
-import android.graphics.drawable.Drawable
 import androidx.compose.foundation.clickable
 import rotatsu.yos.music.player.data.libraries.PlayHistoryList
 import rotatsu.yos.music.player.data.libraries.PlayHistory
@@ -34,7 +33,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -45,7 +43,6 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -59,20 +56,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.drawable.toBitmap
-import androidx.core.graphics.drawable.toDrawable
 import androidx.navigation.NavController
-import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import io.github.alexzhirkevich.cupertino.icons.CupertinoIcons
 import io.github.alexzhirkevich.cupertino.icons.outlined.PersonCropCircle
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import rotatsu.yos.music.player.R
 import rotatsu.yos.music.player.code.MediaController
-import rotatsu.yos.music.player.code.utils.others.BitmapResolver
 import rotatsu.yos.music.player.data.libraries.MusicLibrary
 import rotatsu.yos.music.player.data.libraries.YosMediaItem
 import rotatsu.yos.music.player.data.libraries.artistsName
@@ -83,7 +75,7 @@ import rotatsu.yos.music.player.data.models.ImageViewModel
 import rotatsu.yos.music.player.ui.UI
 import rotatsu.yos.music.player.ui.theme.YosRoundedCornerShape
 import rotatsu.yos.music.player.ui.toUI
-import rotatsu.yos.music.player.ui.widgets.effects.imageResolve
+import rotatsu.yos.music.player.ui.widgets.effects.CoverBackdrop
 import rotatsu.yos.music.player.ui.widgets.basic.Title
 import rotatsu.yos.music.player.ui.widgets.basic.YosWrapper
 
@@ -169,34 +161,6 @@ fun RecommendCard(imageViewModel: ImageViewModel) {
 
 @Composable
 fun RecommendCardItem(subTitle: String, music: YosMediaItem, onClick: () -> Unit) {
-    val drawable = remember(music.thumb) {
-        mutableStateOf<Drawable?>(null)
-    }
-
-    val context = LocalContext.current
-    val imageLoader = ImageLoader(context)
-    YosWrapper {
-        LaunchedEffect(Unit) {
-            if (music.thumb == null) return@LaunchedEffect
-
-            delay(200)
-            val request = ImageRequest.Builder(context)
-                .data(music.thumb)
-                .build()
-            val thisBitmap = imageLoader.execute(request).drawable?.toBitmap()?.run {
-                BitmapResolver.bitmapCompress(this, lowQuality = true)
-            }
-
-            if (thisBitmap != null) {
-                drawable.value = imageResolve(
-                    thisBitmap
-                ).toDrawable(context.resources)
-                thisBitmap.recycle()
-            }
-            imageLoader.shutdown()
-        }
-    }
-
     val shape = YosRoundedCornerShape(20.dp)
     val density = LocalDensity.current
     Box(
@@ -241,7 +205,7 @@ fun RecommendCardItem(subTitle: String, music: YosMediaItem, onClick: () -> Unit
             modifier = Modifier.fillMaxSize()
         )
 
-        // The blurred colours of the cover fade in from the bottom, under the text.
+        // The colours of the cover fade in from the bottom, under the text, as BitChord's player does.
         Box(
             Modifier
                 .align(Alignment.BottomCenter)
@@ -259,25 +223,12 @@ fun RecommendCardItem(subTitle: String, music: YosMediaItem, onClick: () -> Unit
                     )
                 }
         ) {
-            YosWrapper {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(data = drawable.value).crossfade(true).build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                    colorFilter = ColorFilter.tint(Color(0x33000000), BlendMode.Overlay)
-                )
-            }
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent,
-                            1f to Color(0xAA000000)
-                        )
-                    )
+            CoverBackdrop(
+                dataLambda = { music.thumb },
+                modifier = Modifier.fillMaxSize(),
+                seam = 0f,
+                scrimTop = 0.10f,
+                scrimBottom = 0.42f
             )
         }
 

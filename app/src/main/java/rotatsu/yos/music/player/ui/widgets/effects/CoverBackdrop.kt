@@ -44,7 +44,7 @@ import kotlin.math.roundToInt
 /** Shown until a cover has been read. */
 private val FallbackTone = Color(0xFF2B2B2B)
 
-/** Where the cover's bottom edge sits, as a share of the height. The mesh starts there. */
+/** Where the cover's bottom edge sits under the full screen cover, as a share of the height. */
 private const val SEAM = 0.56f
 
 /** How long the backdrop takes to change colour when the song does. */
@@ -61,8 +61,18 @@ private val meshCache = object : LinkedHashMap<String, ImageBitmap>(0, 0.75f, tr
     override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ImageBitmap>?): Boolean = size > 32
 }
 
+/**
+ * The colours of the cover at [dataLambda], as a mesh that continues from [seam], a share of the height.
+ * [scrimTop] and [scrimBottom] are how dark the top and the bottom of it are left.
+ */
 @Composable
-fun CoverBackdrop(dataLambda: () -> Any?, modifier: Modifier = Modifier) {
+fun CoverBackdrop(
+    dataLambda: () -> Any?,
+    modifier: Modifier = Modifier,
+    seam: Float = SEAM,
+    scrimTop: Float = 0.06f,
+    scrimBottom: Float = 0.30f
+) {
     val context = LocalContext.current
     val data = dataLambda()
     val key = data?.toString()
@@ -79,11 +89,17 @@ fun CoverBackdrop(dataLambda: () -> Any?, modifier: Modifier = Modifier) {
             value = found
         }
     }
-    MeshBackdrop(mesh, modifier)
+    MeshBackdrop(mesh, modifier, seam, scrimTop, scrimBottom)
 }
 
 @Composable
-private fun MeshBackdrop(mesh: ImageBitmap?, modifier: Modifier) {
+private fun MeshBackdrop(
+    mesh: ImageBitmap?,
+    modifier: Modifier,
+    seam: Float,
+    scrimTop: Float,
+    scrimBottom: Float
+) {
     // The mesh on screen, and the one fading in over it. Two bitmaps, so the outgoing one has to stay
     // drawable until the fade has finished with it.
     var shown by remember { mutableStateOf(mesh) }
@@ -111,13 +127,13 @@ private fun MeshBackdrop(mesh: ImageBitmap?, modifier: Modifier) {
     // Below Android 12 there is no blur, and it is not missed: the mesh is smoothed before it is drawn.
     val blur = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(BLUR_DP.dp) else Modifier
     Canvas(modifier.fillMaxSize().background(FallbackTone).then(blur)) {
-        val seamY = size.height * SEAM
+        val seamY = size.height * seam
         shown?.let { drawMesh(it, seamY, 1f) }
         incoming?.let { drawMesh(it, seamY, fade.value) }
         // Enough of a scrim to keep white text off a bright cover, and no more.
         drawRect(
             brush = Brush.verticalGradient(
-                listOf(Color.Black.copy(alpha = 0.06f), Color.Black.copy(alpha = 0.30f))
+                listOf(Color.Black.copy(alpha = scrimTop), Color.Black.copy(alpha = scrimBottom))
             )
         )
     }
