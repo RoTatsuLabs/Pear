@@ -37,6 +37,22 @@ internal object YosLyricStack {
         return entry.dropLast(1).filter { it.second.isNotBlank() }.maxOfOrNull { it.first } ?: start
     }
 
+    /**
+     * The first and last line being sung at [time]: started, and not past their own end. Lines may
+     * overlap, as echo lines do, so more than one can be active. Null when none is.
+     */
+    fun activeRange(starts: List<Float>, ends: List<Float>, time: Float): IntRange? {
+        var first = -1
+        var last = -1
+        for (i in starts.indices) {
+            if (starts[i] <= time && time <= ends.getOrElse(i) { starts[i] }) {
+                if (first < 0) first = i
+                last = i
+            }
+        }
+        return if (first < 0) null else first..last
+    }
+
     /** Index of the last line that has started at [time], or -1 before the first one. */
     fun focusIndex(starts: List<Float>, time: Float): Int = starts.indexOfLast { it <= time }
 

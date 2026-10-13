@@ -108,4 +108,39 @@ class YosLyricStyleTest {
         assertEquals(1f, archiveTune.scaleOriginY)
         assertEquals(0.5f, bitChord.scaleOriginY)
     }
+
+    private val apple = YosLyricStyles.of(YosLyricStyle.APPLE)
+
+    @Test
+    fun theAppleLookIsFoundByItsStoredId() {
+        assertEquals(YosLyricStyle.APPLE, YosLyricStyle.fromId("applemusic"))
+    }
+
+    @Test
+    fun theAppleLookDimsEveryOtherLineTheSameAndNeverBlurs() {
+        assertEquals(0.2f, apple.inactiveLineAlpha)
+        assertEquals(0.2f, apple.unsungAlpha)
+        for (d in 0..9) assertEquals(0f, apple.blurDp(d))
+        assertTrue(apple.archiveTuneWords && apple.upcomingAsSung)
+    }
+
+    @Test
+    fun theAppleLookFollowsEveryActiveLineAndASpring() {
+        assertTrue(apple.multiActive && apple.scrollSpring && apple.pressHighlight)
+        assertEquals(0.37f, apple.bottomFadeFrom)
+        assertEquals(1f, YosLyricStyles.APPLE_SPRING_DAMPING)
+        assertTrue(!bitChord.multiActive && !archiveTune.multiActive)
+        assertEquals(1f, bitChord.bottomFadeFrom)
+    }
+
+    @Test
+    fun archiveTuneMovesTheSungLineUpWhileTheControlsShow() {
+        assertEquals(0.0618f, archiveTune.anchorFor(true))
+        assertEquals(0.38f, archiveTune.anchorFor(false))
+        // The others rest in one place either way.
+        assertEquals(bitChord.anchor, bitChord.anchorFor(true))
+        assertEquals(bitChord.anchor, bitChord.anchorFor(false))
+        assertEquals(apple.anchor, apple.anchorFor(true))
+        assertEquals(apple.anchor, apple.anchorFor(false))
+    }
 }

@@ -3,7 +3,8 @@ package rotatsu.yos.music.player.code.utils.lrc
 /** The lyric looks to pick from. [id] is what the setting stores. */
 internal enum class YosLyricStyle(val id: String) {
     BITCHORD("bitchord"),
-    ARCHIVETUNE("archivetune");
+    ARCHIVETUNE("archivetune"),
+    APPLE("applemusic");
 
     companion object {
         fun fromId(id: String): YosLyricStyle = values().firstOrNull { it.id == id } ?: BITCHORD
@@ -45,8 +46,26 @@ class YosLyricStyleSpec(
     /** Whether word synced lines are drawn by ArchiveTune's renderer instead of Pear's own. */
     val archiveTuneWords: Boolean = false,
     /** Where a line scales from, top to bottom as a share of its height. */
-    val scaleOriginY: Float = 0.5f
+    val scaleOriginY: Float = 0.5f,
+    /** Where the sung line rests while the player controls are showing. Null keeps [anchor]. */
+    val anchorWithControls: Float? = null,
+    /** How bright a line is that is not being sung. */
+    val inactiveLineAlpha: Float = 0.4f,
+    /** Whether lines not reached yet look like lines already sung, instead of dimmer. */
+    val upcomingAsSung: Boolean = false,
+    /** Whether every line that overlaps the playing position counts as sung. */
+    val multiActive: Boolean = false,
+    /** Whether the list follows a spring instead of a fixed time tween. */
+    val scrollSpring: Boolean = false,
+    /** Where, as a share of the list height, lines start to fade out towards the bottom. 1 for never. */
+    val bottomFadeFrom: Float = 1f,
+    /** Whether a pressed line gets a soft rounded highlight. */
+    val pressHighlight: Boolean = false
 ) {
+    /** Where the sung line rests, given whether the player controls are showing. */
+    fun anchorFor(controlsVisible: Boolean): Float =
+        if (controlsVisible) anchorWithControls ?: anchor else anchor
+
     fun alpha(distance: Int): Float = alphaByDistance[distance.coerceIn(0, alphaByDistance.lastIndex)]
 
     fun blurDp(distance: Int): Float = blurByDistance[distance.coerceIn(0, blurByDistance.lastIndex)]
@@ -71,6 +90,11 @@ class YosLyricStyleSpec(
  */
 internal object YosLyricStyles {
     private const val ARCHIVETUNE_SCROLL_MS = 500
+    private const val APPLE_SCROLL_MS = 450
+
+    /** The spring the list follows in the Apple style: critically damped, about 0.4 s to settle. */
+    const val APPLE_SPRING_DAMPING = 1f
+    const val APPLE_SPRING_STIFFNESS = 280f
 
     private val bitChord = YosLyricStyleSpec(
         alphaByDistance = YosLyricStack.ALPHA,
@@ -114,12 +138,47 @@ internal object YosLyricStyles {
         glowRadiusDp = 4f,
         liftDp = 0f,
         archiveTuneWords = true,
-        scaleOriginY = 1f
+        scaleOriginY = 1f,
+        // Under the controls the line would be hidden, so it moves up out of their way.
+        anchorWithControls = 0.0618f
+    )
+
+    // Measured from a screen recording of Apple Music for Android, not from its code: lines that are not
+    // being sung are white at 0.20 and sharp, the sung line is 1, the list is a critically damped spring,
+    // and the brightness falls off from 46% of the screen down.
+    private val apple = YosLyricStyleSpec(
+        alphaByDistance = floatArrayOf(1f),
+        browsingAlphaByDistance = floatArrayOf(1f),
+        blurByDistance = floatArrayOf(0f),
+        inactiveScale = 0.98f,
+        unsungAlpha = 0.2f,
+        alphaActiveMs = 300,
+        alphaInactiveMs = 300,
+        scaleActiveMs = 450,
+        scaleInactiveMs = 450,
+        blurMs = 300,
+        settleMs = 300,
+        easingPoints = floatArrayOf(0.4f, 0f, 0.2f, 1f),
+        anchor = 0.1f,
+        fixedScrollMs = APPLE_SCROLL_MS,
+        stagger = false,
+        glowAlpha = 0.45f,
+        glowRadiusDp = 8f,
+        liftDp = 0f,
+        archiveTuneWords = true,
+        scaleOriginY = 0.5f,
+        inactiveLineAlpha = 0.2f,
+        upcomingAsSung = true,
+        multiActive = true,
+        scrollSpring = true,
+        bottomFadeFrom = 0.37f,
+        pressHighlight = true
     )
 
     fun of(style: YosLyricStyle): YosLyricStyleSpec = when (style) {
         YosLyricStyle.BITCHORD -> bitChord
         YosLyricStyle.ARCHIVETUNE -> archiveTune
+        YosLyricStyle.APPLE -> apple
     }
 
     /** The look stored under [id], BitChord when it is unknown. */

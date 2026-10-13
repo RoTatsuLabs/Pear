@@ -105,4 +105,23 @@ class YosLyricStackTest {
         assertTrue(YosLyricStack.scrimBoost(0.8f) in 1.01f..1.45f)
         assertEquals(1.45f, YosLyricStack.scrimBoost(1f))
     }
+
+    @Test
+    fun everyLineThatOverlapsTheTimeIsActive() {
+        val starts = listOf(0f, 1000f, 1500f, 4000f)
+        val ends = listOf(2000f, 3000f, 2500f, 5000f)
+        assertEquals(0..0, YosLyricStack.activeRange(starts, ends, 500f))
+        assertEquals(0..2, YosLyricStack.activeRange(starts, ends, 1800f))
+        assertEquals(1..1, YosLyricStack.activeRange(starts, ends, 2800f))
+        assertEquals(3..3, YosLyricStack.activeRange(starts, ends, 4500f))
+    }
+
+    @Test
+    fun noLineIsActiveBeforeTheFirstOrInAGap() {
+        val starts = listOf(1000f, 4000f)
+        val ends = listOf(2000f, 5000f)
+        assertEquals(null, YosLyricStack.activeRange(starts, ends, 500f))
+        assertEquals(null, YosLyricStack.activeRange(starts, ends, 3000f))
+        assertEquals(null, YosLyricStack.activeRange(starts, ends, 6000f))
+    }
 }

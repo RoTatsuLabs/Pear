@@ -60,6 +60,8 @@ import androidx.compose.ui.draw.DrawResult
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -242,7 +244,10 @@ fun YosLyricView(
 
         val height = rememberSaveable(key = "YosLyricView_height") { mutableIntStateOf(0) }
 
-        val targetWeight = style.anchor
+        // While the player controls show they cover the lower part of the list, so the sung line rests
+        // near the top, clear of them, and moves back when they are hidden.
+        val controlsVisible = weightLambda()
+        val targetWeight = style.anchorFor(controlsVisible)
         val targetOffset = rememberSaveable(height.intValue, targetWeight, key = "YosLyricView_targetOffset") {
             //println("计算边距使用：${height.intValue}")
             //println("计算边距为：${height.intValue * targetWeight}")
@@ -259,6 +264,9 @@ fun YosLyricView(
         val scrollRun = remember { mutableStateOf(ScrollRun(0, 0f, YosLyricStack.SETTLE_MS)) }
         val sinceRun = remember { Animatable(0f) }
         val focusIndex = remember { mutableIntStateOf(currentLyricIndex.intValue) }
+        // The first and last line being sung, for a look where overlapping lines are all lit.
+        val activeFirst = remember { mutableIntStateOf(currentLyricIndex.intValue) }
+        val activeLast = remember { mutableIntStateOf(currentLyricIndex.intValue) }
 
         val visibleItems = remember("YosLyricView_visibleItems") {
             derivedStateOf {
@@ -385,6 +393,26 @@ fun YosLyricView(
                             TimeUtils.getNowMills()
                         it
                     }, orientation = Orientation.Vertical)*/
+                    .then(
+                        if (style.bottomFadeFrom < 1f) {
+                            // Brightness that falls off with the position on the screen, not the distance
+                            // from the sung line.
+                            Modifier
+                                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                                .drawWithContent {
+                                    drawContent()
+                                    drawRect(
+                                        brush = Brush.verticalGradient(
+                                            style.bottomFadeFrom to Color.Black,
+                                            1f to Color.Transparent
+                                        ),
+                                        blendMode = BlendMode.DstIn
+                                    )
+                                }
+                        } else {
+                            Modifier
+                        }
+                    )
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }) {
@@ -405,9 +433,13 @@ fun YosLyricView(
                     key = { _, lines -> lines }/*,
                 contentType = { _, _ -> "YosLyricView_item" }*/
                 ) { index, lines ->
-                    val isCurrent = remember(lines) {
+                    val isCurrent = remember(lines, style) {
                         derivedStateOf {
-                            index == currentLyricIndex.intValue
+                            if (style.multiActive) {
+                                index in activeFirst.intValue..activeLast.intValue
+                            } else {
+                                index == currentLyricIndex.intValue
+                            }
                         }
                     }
 
@@ -475,7 +507,13 @@ fun YosLyricView(
                                 measurer = measurer,
                                 isLyricEmpty = { isLyricEmpty.value },
                                 distanceLambda = { abs(index - currentLyricIndex.intValue) },
-                                sungLambda = { index < currentLyricIndex.intValue },
+                                sungLambda = {
+                                    if (style.multiActive) {
+                                        index < activeFirst.intValue
+                                    } else {
+                                        index < currentLyricIndex.intValue
+                                    }
+                                },
                                 browsingLambda = { !enableLyricScroll.value },
                                 staggerLambda = {
                                     if (!style.stagger) {
@@ -528,19 +566,31 @@ fun YosLyricView(
         YosWrapper {
             LaunchedEffect(lrcEntries, style) {
                 val starts = lrcEntries.map { it.first().first }
+                val ends = lrcEntries.map { YosLyricStack.lineEnd(it) }
                 while (true) {
                     val real = currentLyricIndex.intValue
-                    val next = lrcEntries.getOrNull(real + 1)
-                    val ahead = if (next == null) {
-                        real
+                    if (style.multiActive) {
+                        // Every line that overlaps the position is lit, and the list follows the first
+                        // of them. Between lines the last one to start stays lit.
+                        val range = YosLyricStack.activeRange(starts, ends, liveTimeLambda().toFloat())
+                        val first = range?.first ?: real
+                        val last = range?.last ?: real
+                        if (activeFirst.intValue != first) activeFirst.intValue = first
+                        if (activeLast.intValue != last) activeLast.intValue = last
+                        focusIndex.intValue = first
                     } else {
-                        val gap = YosLyricStack.gapBefore(lrcEntries, real + 1)
-                        YosLyricStack.focusIndex(
-                            starts,
-                            liveTimeLambda() + style.scrollLead(gap).toFloat()
-                        )
+                        val next = lrcEntries.getOrNull(real + 1)
+                        val ahead = if (next == null) {
+                            real
+                        } else {
+                            val gap = YosLyricStack.gapBefore(lrcEntries, real + 1)
+                            YosLyricStack.focusIndex(
+                                starts,
+                                liveTimeLambda() + style.scrollLead(gap).toFloat()
+                            )
+                        }
+                        focusIndex.intValue = if (ahead == real + 1) ahead else real
                     }
-                    focusIndex.intValue = if (ahead == real + 1) ahead else real
                     delay(30)
                 }
             }
@@ -555,7 +605,7 @@ fun YosLyricView(
         }
 
         YosWrapper {
-            LaunchedEffect(focusIndex.intValue, translationLambda()) {
+            LaunchedEffect(focusIndex.intValue, translationLambda(), targetWeight) {
                 try {
                     if (enableLyricScroll.value) {
                         /*visibleItems = scrollState.layoutInfo.visibleItemsInfo
@@ -589,10 +639,15 @@ fun YosLyricView(
                             val span = style.scrollLead(YosLyricStack.gapBefore(lrcEntries, focus))
                             val delta = scrollDistance.value
                             scrollRun.value = ScrollRun(scrollRun.value.id + 1, delta, span)
-                            scrollState.animateScrollBy(
-                                delta,
-                                animationSpec = tween(durationMillis = span, easing = styleEasing)
-                            )
+                            val scrollSpec: AnimationSpec<Float> = if (style.scrollSpring) {
+                                spring(
+                                    dampingRatio = YosLyricStyles.APPLE_SPRING_DAMPING,
+                                    stiffness = YosLyricStyles.APPLE_SPRING_STIFFNESS
+                                )
+                            } else {
+                                tween(durationMillis = span, easing = styleEasing)
+                            }
+                            scrollState.animateScrollBy(delta, animationSpec = scrollSpec)
                         } else {
                             scrollState.animateScrollToItem(
                                 index = (focusIndex.intValue + 1).coerceAtLeast(0),
@@ -1254,8 +1309,14 @@ fun LazyItemScope.LyricItem(
                                             }
                                         }
                                     }
+                                    // A soft rounded highlight behind a line while it is pressed.
+                                    val pressHighlight = animateFloatAsState(
+                                        targetValue = if (pressed && style.pressHighlight) 0.10f else 0f,
+                                        animationSpec = tween(durationMillis = if (pressed) 100 else 200),
+                                        label = "pressHighlight"
+                                    )
                                     val archiveTuneAlpha = animateFloatAsState(
-                                        targetValue = if (isCurrentLambda()) 1f else 0.4f,
+                                        targetValue = if (isCurrentLambda()) 1f else style.inactiveLineAlpha,
                                         label = "archiveTuneAlpha"
                                     )
                                     val bitChordGlow = animateFloatAsState(
@@ -1283,13 +1344,26 @@ fun LazyItemScope.LyricItem(
                                                 .graphicsLayer {
                                                     compositingStrategy = CompositingStrategy.ModulateAlpha
                                                 }
+                                                .drawBehind {
+                                                    val strength = pressHighlight.value
+                                                    if (strength > 0.001f) {
+                                                        val across = 10.dp.toPx()
+                                                        val down = 6.dp.toPx()
+                                                        drawRoundRect(
+                                                            color = Color.White.copy(alpha = strength),
+                                                            topLeft = Offset(-across, -down),
+                                                            size = Size(size.width + across * 2, size.height + down * 2),
+                                                            cornerRadius = CornerRadius(22.dp.toPx())
+                                                        )
+                                                    }
+                                                }
                                         ) {
                                             YosArchiveTuneLine(
                                                 line = archiveTuneLine,
                                                 clock = liveTime,
                                                 mode = when {
                                                     isCurrentLambda() -> AT_CURRENT
-                                                    sungLambda() -> AT_SUNG
+                                                    sungLambda() || style.upcomingAsSung -> AT_SUNG
                                                     else -> AT_UPCOMING
                                                 },
                                                 style = lineStyle,

@@ -56,22 +56,19 @@ fun LyricSetting(navController: NavController) =
                         GroupSpacer()
                         ListHeader(content = stringResource(id = R.string.settings_performance_lyric_look))
                         RoundColumn {
-                            val bitChord = stringResource(id = R.string.settings_performance_lyric_look_bitchord)
-                            val archiveTune = stringResource(id = R.string.settings_performance_lyric_look_archivetune)
+                            val looks = listOf(
+                                YosLyricStyle.BITCHORD to stringResource(id = R.string.settings_performance_lyric_look_bitchord),
+                                YosLyricStyle.ARCHIVETUNE to stringResource(id = R.string.settings_performance_lyric_look_archivetune),
+                                YosLyricStyle.APPLE to stringResource(id = R.string.settings_performance_lyric_look_apple)
+                            )
+                            val current = YosLyricStyle.fromId(SettingsLibrary.LyricStyle)
                             SelectItem(
                                 title = stringResource(id = R.string.settings_performance_lyric_look_select),
-                                items = listOf(bitChord, archiveTune),
-                                value = if (YosLyricStyle.fromId(SettingsLibrary.LyricStyle) == YosLyricStyle.ARCHIVETUNE) {
-                                    archiveTune
-                                } else {
-                                    bitChord
-                                },
-                                onValueChange = {
-                                    SettingsLibrary.LyricStyle = if (it == archiveTune) {
-                                        YosLyricStyle.ARCHIVETUNE.id
-                                    } else {
-                                        YosLyricStyle.BITCHORD.id
-                                    }
+                                items = looks.map { it.second },
+                                value = looks.first { it.first == current }.second,
+                                onValueChange = { picked ->
+                                    SettingsLibrary.LyricStyle =
+                                        (looks.firstOrNull { it.second == picked }?.first ?: YosLyricStyle.BITCHORD).id
                                 }
                             )
                         }
