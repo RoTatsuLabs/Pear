@@ -17,6 +17,7 @@ All notable changes to Pear are listed here, newest first.
 * Draw word synced lyrics in the ArchiveTune style, modeled on ArchiveTune's lyric view: words start a little low and rise as they are sung, long held words swell and glow letter by letter, and a soft edge sweeps the line from dim to lit.
 * Replace the plain dark gradient under the full screen cover with a colour mesh made from the cover itself, modeled on the backdrop behind BitChord's player.
 * Use the colour mesh of the cover behind the Featured Picks cards on Home, in place of the near black gradient.
+* Use the lyric font and its weight for the translation line, so it matches the main lyrics.
 * Redraw the translate button as two speech bubbles in both its on and off looks, to match Apple Music.
 * Rework the README with a centered header, a short feature list and the build steps.
 * Rename the app to Pear. The launcher label, the settings text and the media notification channel no longer say Flamingo.

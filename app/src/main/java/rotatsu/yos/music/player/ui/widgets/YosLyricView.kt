@@ -1602,7 +1602,7 @@ fun LazyItemScope.LyricItem(
                                                 fontSize = (subTextSize * fontScale).sp,
                                                 fontFamily = fontFamily,
                                                 color = subTextBasicColor,
-                                                fontWeight = FontWeight.Normal,
+                                                fontWeight = lyricFontWeight(fontWeightName),
                                                 modifier = Modifier
                                                     .graphicsLayer {
                                                         this.alpha =
@@ -1613,7 +1613,7 @@ fun LazyItemScope.LyricItem(
                                                     .then(translationOtherSidePadding)
                                                     .padding(top = 5.dp),
                                                 lineHeight = (subTextSize * fontScale + 5).sp,
-                                                letterSpacing = 0.3.sp,
+                                                letterSpacing = 0.05.sp,
                                                 textAlign = textAlign
                                             )
                                         }
