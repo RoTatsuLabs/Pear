@@ -226,7 +226,6 @@ fun RecommendCardItem(subTitle: String, music: YosMediaItem, onClick: () -> Unit
             CoverBackdrop(
                 dataLambda = { music.thumb },
                 modifier = Modifier.fillMaxSize(),
-                seam = 0f,
                 scrimTop = 0.10f,
                 scrimBottom = 0.42f
             )

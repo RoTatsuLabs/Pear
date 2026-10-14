@@ -15,8 +15,7 @@ All notable changes to Pear are listed here, newest first.
 * Add a Lyric Style choice to Lyric Display. BitChord keeps the current look. ArchiveTune dims every other line to the same level, blurs them a little more per line, and rests the sung line lower on the screen.
 * Draw word synced lyrics in the BitChord style, modeled on BitChord's lyric view: a feathered sweep, words that lift as they are sung, and held words that swell letter by letter and glow.
 * Draw word synced lyrics in the ArchiveTune style, modeled on ArchiveTune's lyric view: words start a little low and rise as they are sung, long held words swell and glow letter by letter, and a soft edge sweeps the line from dim to lit.
-* Replace the plain dark gradient under the full screen cover with a colour mesh made from the cover itself, modeled on the backdrop behind BitChord's player.
-* Use the colour mesh of the cover behind the Featured Picks cards on Home, in place of the near black gradient.
+* Replace the playback page backgrounds with the mesh gradient of Apple Music-like Lyrics, made from the cover. The Background Dynamic Effect setting makes it turn slowly. The Home Featured Picks cards use it too, still.
 * Use the lyric font and its weight for the translation line, so it matches the main lyrics.
 * Keep the sung line near the top of the lyrics while the player controls show, in the ArchiveTune style, and bring it back to the middle when they hide.
 * Add an Apple Music lyric style, modeled on Apple Music for Android: every line that overlaps the playing position stays lit, the list follows a spring, lines fade towards the bottom of the screen, and a pressed line gets a soft highlight.

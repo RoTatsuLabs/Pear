@@ -164,7 +164,6 @@ import rotatsu.yos.music.player.ui.pages.NowPlayingPage.PlayingList
 import rotatsu.yos.music.player.ui.theme.YosRoundedCornerShape
 import rotatsu.yos.music.player.ui.widgets.YosLyricView
 import rotatsu.yos.music.player.ui.widgets.basic.FullBleedCover
-import rotatsu.yos.music.player.ui.widgets.effects.CoverBackdrop
 import rotatsu.yos.music.player.ui.widgets.effects.YosFloatingLight
 import rotatsu.yos.music.player.ui.widgets.audio.MusicQualityIndicator
 import rotatsu.yos.music.player.ui.widgets.basic.ImageQuality
@@ -297,22 +296,6 @@ fun NowPlaying(
                 showMiniPlayer = showMiniPlayer
             )
         }
-
-        YosWrapper {
-            val cover = animateFloatAsState(
-                targetValue = if (SettingsLibrary.FullScreenCover && nowPageLambda() == Album) 1f else 0f,
-                animationSpec = tween(durationMillis = 450, easing = PageEasing)
-            )
-            if (cover.value > 0f) {
-                CoverBackdrop(
-                    dataLambda = { thisMusicPlaying.value?.thumb },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = cover.value }
-                )
-            }
-        }
-
 
         // 实际显示区
         YosWrapper {
