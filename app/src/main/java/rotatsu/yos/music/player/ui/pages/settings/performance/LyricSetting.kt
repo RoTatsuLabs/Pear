@@ -59,7 +59,7 @@ fun LyricSetting(navController: NavController) =
                             val looks = listOf(
                                 YosLyricStyle.BITCHORD to stringResource(id = R.string.settings_performance_lyric_look_bitchord),
                                 YosLyricStyle.ARCHIVETUNE to stringResource(id = R.string.settings_performance_lyric_look_archivetune),
-                                YosLyricStyle.APPLE to stringResource(id = R.string.settings_performance_lyric_look_apple)
+                                YosLyricStyle.AMLL to stringResource(id = R.string.settings_performance_lyric_look_amll)
                             )
                             val current = YosLyricStyle.fromId(SettingsLibrary.LyricStyle)
                             SelectItem(

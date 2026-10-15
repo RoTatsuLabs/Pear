@@ -87,7 +87,7 @@
     <string name="settings_performance_lyric_blur_effect_desc">歌詞ビューのぼかし効果、パフォーマンスに問題を引き起こす可能性があります。</string>
     <string name="settings_performance_lyric_look">歌詞のスタイル</string>
     <string name="settings_performance_lyric_look_select">スタイル</string>
-    <string name="settings_performance_lyric_look_desc">曲の再生中の歌詞の見た目と動きを切り替えます。BitChord、ArchiveTune、Apple Musicはそれぞれのアプリを参考にしていますが、Pear独自の描画のため、どれも完全に同じ見た目ではありません。</string>
+    <string name="settings_performance_lyric_look_desc">曲の再生中の歌詞の見た目と動きを切り替えます。BitChord、ArchiveTune、Apple Music Like Lyricはそれぞれのアプリを参考にしていますが、Pear独自の描画のため、どれも完全に同じ見た目ではありません。</string>
     <string name="settings_performance_lyric_title">歌詞表示</string>
     <string name="settings_performance_lyric_style">スタイル</string>
     <string name="settings_performance_lyric_others">その他</string>

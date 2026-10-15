@@ -109,38 +109,44 @@ class YosLyricStyleTest {
         assertEquals(0.5f, bitChord.scaleOriginY)
     }
 
-    private val apple = YosLyricStyles.of(YosLyricStyle.APPLE)
+    private val amll = YosLyricStyles.of(YosLyricStyle.AMLL)
 
     @Test
-    fun theAppleLookIsFoundByItsStoredId() {
-        assertEquals(YosLyricStyle.APPLE, YosLyricStyle.fromId("applemusic"))
+    fun theAmllLookIsFoundByItsStoredIdAndTheOldAppleIdLeadsToIt() {
+        assertEquals(YosLyricStyle.AMLL, YosLyricStyle.fromId("amll"))
+        assertEquals(YosLyricStyle.AMLL, YosLyricStyle.fromId("applemusic"))
+        assertEquals(YosLyricStyle.BITCHORD, YosLyricStyle.fromId("nothing"))
     }
 
     @Test
-    fun theAppleLookDimsEveryOtherLineTheSameAndNeverBlurs() {
-        assertEquals(0.2f, apple.inactiveLineAlpha)
-        assertEquals(0.2f, apple.unsungAlpha)
-        for (d in 0..9) assertEquals(0f, apple.blurDp(d))
-        assertTrue(apple.archiveTuneWords && apple.upcomingAsSung)
+    fun theAmllLookHasTheValuesOfAmll() {
+        assertEquals(0.2f, amll.inactiveLineAlpha)
+        assertEquals(0.4f, amll.unsungAlpha)
+        assertEquals(0.85f, amll.activeLineAlpha)
+        assertEquals(0.97f, amll.inactiveScale)
+        assertTrue(amll.amllWords && !amll.archiveTuneWords && !amll.bitChordWords)
+        // One pixel of blur and a little more for each line away, to a limit.
+        assertEquals(0f, amll.blurDp(0))
+        assertEquals(1.6f, amll.blurDp(1))
+        assertEquals(5f, amll.blurDp(6))
+        assertEquals(5f, amll.blurDp(20))
     }
 
     @Test
-    fun theAppleLookFollowsEveryActiveLineAndASpring() {
-        assertTrue(apple.multiActive && apple.scrollSpring && apple.pressHighlight)
-        assertEquals(0.37f, apple.bottomFadeFrom)
-        assertEquals(1f, YosLyricStyles.APPLE_SPRING_DAMPING)
-        assertTrue(!bitChord.multiActive && !archiveTune.multiActive)
-        assertEquals(1f, bitChord.bottomFadeFrom)
+    fun theAmllLookLightsEveryActiveLineAndFollowsASpring() {
+        assertTrue(amll.multiActive && amll.scrollSpring && amll.pressHighlight && amll.upcomingAsSung)
+        assertEquals(1f, amll.bottomFadeFrom)
+        assertTrue(!bitChord.multiActive && !archiveTune.multiActive && !bitChord.amllWords && !archiveTune.amllWords)
     }
 
     @Test
-    fun archiveTuneMovesTheSungLineUpWhileTheControlsShow() {
+    fun archiveTuneAndAmllMoveTheSungLineUpWhileTheControlsShow() {
         assertEquals(0.0618f, archiveTune.anchorFor(true))
         assertEquals(0.38f, archiveTune.anchorFor(false))
-        // The others rest in one place either way.
+        assertEquals(0.0618f, amll.anchorFor(true))
+        assertEquals(0.3f, amll.anchorFor(false))
+        // BitChord rests in one place either way.
         assertEquals(bitChord.anchor, bitChord.anchorFor(true))
         assertEquals(bitChord.anchor, bitChord.anchorFor(false))
-        assertEquals(apple.anchor, apple.anchorFor(true))
-        assertEquals(apple.anchor, apple.anchorFor(false))
     }
 }

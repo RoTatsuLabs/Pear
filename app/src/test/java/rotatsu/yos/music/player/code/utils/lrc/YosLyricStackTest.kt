@@ -124,4 +124,20 @@ class YosLyricStackTest {
         assertEquals(null, YosLyricStack.activeRange(starts, ends, 3000f))
         assertEquals(null, YosLyricStack.activeRange(starts, ends, 6000f))
     }
+
+    @Test
+    fun theSpringFollowsTheGapAndIsSlowWithoutOne() {
+        val (quick, quickRatio) = YosLyricStack.amllSpring(100f)
+        val (slowPlay, slowPlayRatio) = YosLyricStack.amllSpring(800f)
+        assertEquals(220f, quick, 0.01f)
+        assertEquals(170f, slowPlay, 0.01f)
+        assertEquals(1.1f, quickRatio, 0.001f)
+        assertEquals(1.1f, slowPlayRatio, 0.001f)
+        val (middle, _) = YosLyricStack.amllSpring(450f)
+        assertTrue(middle in 170f..220f)
+        val (stiffness, ratio) = YosLyricStack.amllSpring(null)
+        assertEquals(90f, stiffness, 0.01f)
+        assertEquals(15f / (2f * Math.sqrt(90.0).toFloat()), ratio, 1e-4f)
+        assertTrue(ratio < 1f)
+    }
 }

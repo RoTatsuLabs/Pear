@@ -18,7 +18,7 @@ All notable changes to Pear are listed here, newest first.
 * Replace the playback page backgrounds with the mesh gradient of Apple Music-like Lyrics, made from the cover. The Background Dynamic Effect setting makes it turn slowly. The Home Featured Picks cards use it too, still.
 * Use the lyric font and its weight for the translation line, so it matches the main lyrics.
 * Keep the sung line near the top of the lyrics while the player controls show, in the ArchiveTune style, and bring it back to the middle when they hide.
-* Add an Apple Music lyric style, modeled on Apple Music for Android: every line that overlaps the playing position stays lit, the list follows a spring, lines fade towards the bottom of the screen, and a pressed line gets a soft highlight.
+* Add an Apple Music Like Lyric style, modeled on the lyric player of Apple Music-like Lyrics: each word is lit by a soft edge that crosses it in its own time, every word floats up as it is sung, long words swell and glow letter by letter, every line that overlaps the playing position stays lit, and the list follows a spring.
 * Redraw the translate button as two speech bubbles in both its on and off looks, to match Apple Music.
 * Rework the README with a centered header, a short feature list and the build steps.
 * Rename the app to Pear. The launcher label, the settings text and the media notification channel no longer say Flamingo.

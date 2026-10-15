@@ -4,10 +4,14 @@ package rotatsu.yos.music.player.code.utils.lrc
 internal enum class YosLyricStyle(val id: String) {
     BITCHORD("bitchord"),
     ARCHIVETUNE("archivetune"),
-    APPLE("applemusic");
+    AMLL("amll");
 
     companion object {
-        fun fromId(id: String): YosLyricStyle = values().firstOrNull { it.id == id } ?: BITCHORD
+        fun fromId(id: String): YosLyricStyle = when (id) {
+            // The look that was called Apple Music became this one.
+            "applemusic" -> AMLL
+            else -> values().firstOrNull { it.id == id } ?: BITCHORD
+        }
     }
 }
 
@@ -60,7 +64,11 @@ class YosLyricStyleSpec(
     /** Where, as a share of the list height, lines start to fade out towards the bottom. 1 for never. */
     val bottomFadeFrom: Float = 1f,
     /** Whether a pressed line gets a soft rounded highlight. */
-    val pressHighlight: Boolean = false
+    val pressHighlight: Boolean = false,
+    /** Whether words are drawn as Apple Music-like Lyrics draws them, with its own edge, emphasis and float. */
+    val amllWords: Boolean = false,
+    /** How bright the sung line is as a whole. */
+    val activeLineAlpha: Float = 1f
 ) {
     /** Where the sung line rests, given whether the player controls are showing. */
     fun anchorFor(controlsVisible: Boolean): Float =
@@ -90,11 +98,7 @@ class YosLyricStyleSpec(
  */
 internal object YosLyricStyles {
     private const val ARCHIVETUNE_SCROLL_MS = 500
-    private const val APPLE_SCROLL_MS = 450
-
-    /** The spring the list follows in the Apple style: critically damped, about 0.4 s to settle. */
-    const val APPLE_SPRING_DAMPING = 1f
-    const val APPLE_SPRING_STIFFNESS = 280f
+    private const val AMLL_SCROLL_MS = 600
 
     private val bitChord = YosLyricStyleSpec(
         alphaByDistance = YosLyricStack.ALPHA,
@@ -143,42 +147,44 @@ internal object YosLyricStyles {
         anchorWithControls = 0.0618f
     )
 
-    // Measured from a screen recording of Apple Music for Android, not from its code: lines that are not
-    // being sung are white at 0.20 and sharp, the sung line is 1, the list is a critically damped spring,
-    // and the brightness falls off from 46% of the screen down.
-    private val apple = YosLyricStyleSpec(
+    // The values of Apple Music-like Lyrics (AGPL-3.0, https://github.com/amll-dev/applemusic-like-lyrics): lines
+    // that are not sung are white at 0.2 and the unsung words of the sung line at 0.4, scaled to 0.97, blurred by
+    // 1 px and a little more for every line away, and the sung line is at 0.85. It rests at 0.35 of the height.
+    private val amll = YosLyricStyleSpec(
         alphaByDistance = floatArrayOf(1f),
         browsingAlphaByDistance = floatArrayOf(1f),
-        blurByDistance = floatArrayOf(0f),
-        inactiveScale = 0.98f,
-        unsungAlpha = 0.2f,
+        blurByDistance = floatArrayOf(0f, 1.6f, 2.4f, 3.2f, 4f, 4.8f, 5f),
+        inactiveScale = 0.97f,
+        unsungAlpha = 0.4f,
         alphaActiveMs = 300,
-        alphaInactiveMs = 300,
-        scaleActiveMs = 450,
-        scaleInactiveMs = 450,
+        alphaInactiveMs = 450,
+        scaleActiveMs = 600,
+        scaleInactiveMs = 600,
         blurMs = 300,
         settleMs = 300,
         easingPoints = floatArrayOf(0.4f, 0f, 0.2f, 1f),
-        anchor = 0.1f,
-        fixedScrollMs = APPLE_SCROLL_MS,
+        anchor = 0.3f,
+        fixedScrollMs = AMLL_SCROLL_MS,
         stagger = false,
-        glowAlpha = 0.45f,
-        glowRadiusDp = 8f,
+        glowAlpha = 0f,
+        glowRadiusDp = 0f,
         liftDp = 0f,
-        archiveTuneWords = true,
         scaleOriginY = 0.5f,
+        // Under the controls the line would be hidden, so it moves up out of their way.
+        anchorWithControls = 0.0618f,
         inactiveLineAlpha = 0.2f,
+        activeLineAlpha = 0.85f,
         upcomingAsSung = true,
         multiActive = true,
         scrollSpring = true,
-        bottomFadeFrom = 0.37f,
-        pressHighlight = true
+        pressHighlight = true,
+        amllWords = true
     )
 
     fun of(style: YosLyricStyle): YosLyricStyleSpec = when (style) {
         YosLyricStyle.BITCHORD -> bitChord
         YosLyricStyle.ARCHIVETUNE -> archiveTune
-        YosLyricStyle.APPLE -> apple
+        YosLyricStyle.AMLL -> amll
     }
 
     /** The look stored under [id], BitChord when it is unknown. */

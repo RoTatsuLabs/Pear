@@ -112,6 +112,7 @@ import kotlinx.coroutines.withContext
 import rotatsu.yos.music.player.code.utils.lrc.YosGlowWord
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricCredit
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricGlow
+import rotatsu.yos.music.player.code.utils.lrc.YosAmllLines
 import rotatsu.yos.music.player.code.utils.lrc.YosAtLines
 import rotatsu.yos.music.player.code.utils.lrc.YosBcLines
 import rotatsu.yos.music.player.code.utils.lrc.YosLyricStack
@@ -640,10 +641,14 @@ fun YosLyricView(
                             val delta = scrollDistance.value
                             scrollRun.value = ScrollRun(scrollRun.value.id + 1, delta, span)
                             val scrollSpec: AnimationSpec<Float> = if (style.scrollSpring) {
-                                spring(
-                                    dampingRatio = YosLyricStyles.APPLE_SPRING_DAMPING,
-                                    stiffness = YosLyricStyles.APPLE_SPRING_STIFFNESS
-                                )
+                                // AMLL's spring follows the gap since the line before.
+                                val interval = if (focus > 0 && focus < lrcEntries.size) {
+                                    lrcEntries[focus].first().first - lrcEntries[focus - 1].first().first
+                                } else {
+                                    null
+                                }
+                                val (stiffness, damping) = YosLyricStack.amllSpring(interval)
+                                spring(dampingRatio = damping, stiffness = stiffness)
                             } else {
                                 tween(durationMillis = span, easing = styleEasing)
                             }
@@ -1299,6 +1304,17 @@ fun LazyItemScope.LyricItem(
                                             }
                                         }
                                     }
+                                    // AMLL's renderer, for lines synced word by word.
+                                    val amllLine = remember(mainLyric, style, romanPerWord, rtlLine) {
+                                        if (!style.amllWords || isNotOneByOne.value || romanPerWord || rtlLine) {
+                                            null
+                                        } else {
+                                            YosAmllLines.fromPairs(mainLyric).takeIf {
+                                                mainLyric.count { pair -> pair.second.isNotEmpty() } >= 2 &&
+                                                    it.words.isNotEmpty() && !YosTextShaping.needsShapedDraw(it.text)
+                                            }
+                                        }
+                                    }
                                     // ArchiveTune's renderer, for the same lines.
                                     val archiveTuneLine = remember(mainLyric, style, romanPerWord, rtlLine) {
                                         if (!style.archiveTuneWords || isNotOneByOne.value || romanPerWord || rtlLine) {
@@ -1311,8 +1327,8 @@ fun LazyItemScope.LyricItem(
                                     }
                                     // A soft rounded highlight behind a line while it is pressed.
                                     val pressHighlight = animateFloatAsState(
-                                        targetValue = if (pressed && style.pressHighlight) 0.10f else 0f,
-                                        animationSpec = tween(durationMillis = if (pressed) 100 else 200),
+                                        targetValue = if (pressed && style.pressHighlight) 0.067f else 0f,
+                                        animationSpec = tween(durationMillis = 250),
                                         label = "pressHighlight"
                                     )
                                     val archiveTuneAlpha = animateFloatAsState(
@@ -1336,7 +1352,7 @@ fun LazyItemScope.LyricItem(
                                         label = "bitChordTail"
                                     )
 
-                                    if (archiveTuneLine != null) {
+                                    if (amllLine != null) {
                                         Column(
                                             horizontalAlignment = viewAlign,
                                             modifier = Modifier
@@ -1353,7 +1369,53 @@ fun LazyItemScope.LyricItem(
                                                             color = Color.White.copy(alpha = strength),
                                                             topLeft = Offset(-across, -down),
                                                             size = Size(size.width + across * 2, size.height + down * 2),
-                                                            cornerRadius = CornerRadius(22.dp.toPx())
+                                                            cornerRadius = CornerRadius(10.dp.toPx())
+                                                        )
+                                                    }
+                                                }
+                                        ) {
+                                            YosAmllLine(
+                                                line = amllLine,
+                                                clock = liveTime,
+                                                mode = if (isCurrentLambda()) AT_CURRENT else AT_SUNG,
+                                                style = lineStyle,
+                                                inactiveAlpha = style.inactiveLineAlpha,
+                                                activeAlpha = style.activeLineAlpha,
+                                                unsungAlpha = style.unsungAlpha,
+                                                modifier = Modifier
+                                                    .graphicsLayer {
+                                                        this.alpha = thisAlpha.value
+                                                        compositingStrategy =
+                                                            CompositingStrategy.ModulateAlpha
+                                                    }
+                                                    .padding(vertical = 4.dp)
+                                                    .then(otherSidePadding.value)
+                                                    .clickable(
+                                                        indication = null,
+                                                        interactionSource = interaction
+                                                    ) {
+                                                        onClick()
+                                                    }
+                                            )
+                                        }
+                                    } else if (archiveTuneLine != null) {
+                                        Column(
+                                            horizontalAlignment = viewAlign,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .graphicsLayer {
+                                                    compositingStrategy = CompositingStrategy.ModulateAlpha
+                                                }
+                                                .drawBehind {
+                                                    val strength = pressHighlight.value
+                                                    if (strength > 0.001f) {
+                                                        val across = 10.dp.toPx()
+                                                        val down = 6.dp.toPx()
+                                                        drawRoundRect(
+                                                            color = Color.White.copy(alpha = strength),
+                                                            topLeft = Offset(-across, -down),
+                                                            size = Size(size.width + across * 2, size.height + down * 2),
+                                                            cornerRadius = CornerRadius(10.dp.toPx())
                                                         )
                                                     }
                                                 }

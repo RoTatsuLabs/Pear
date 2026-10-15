@@ -87,10 +87,10 @@
     <string name="settings_performance_lyric_blur_effect_desc">Blur effect of the lyrics view, which may cause performance issues.</string>
     <string name="settings_performance_lyric_look">Lyric Style</string>
     <string name="settings_performance_lyric_look_select">Style</string>
-    <string name="settings_performance_lyric_look_desc">Changes how lyric lines look and move while a song plays. BitChord, ArchiveTune and Apple Music are modeled on those apps, but Pear draws them its own way, so they are close and not an exact copy of any of them.</string>
+    <string name="settings_performance_lyric_look_desc">Changes how lyric lines look and move while a song plays. BitChord, ArchiveTune and Apple Music Like Lyric are modeled on those apps, but Pear draws them its own way, so they are close and not an exact copy of any of them.</string>
     <string name="settings_performance_lyric_look_bitchord" translatable="false">BitChord</string>
     <string name="settings_performance_lyric_look_archivetune" translatable="false">ArchiveTune</string>
-    <string name="settings_performance_lyric_look_apple" translatable="false">Apple Music</string>
+    <string name="settings_performance_lyric_look_amll" translatable="false">Apple Music Like Lyric</string>
     <string name="settings_performance_lyric_title">Lyric Display</string>
     <string name="settings_performance_lyric_style">Style</string>
     <string name="settings_performance_lyric_others">Others</string>
