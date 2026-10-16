@@ -19,7 +19,7 @@ All notable changes to Pear are listed here, newest first.
 * Use the lyric font and its weight for the translation line, so it matches the main lyrics.
 * Keep the sung line near the top of the lyrics while the player controls show, in the ArchiveTune style, and bring it back to the middle when they hide.
 * Add an Apple Music Like Lyric style, modeled on the lyric player of Apple Music-like Lyrics: each word is lit by a soft edge that crosses it in its own time, every word floats up as it is sung, long words swell and glow letter by letter, every line that overlaps the playing position stays lit, and the list follows a spring.
-* Show the backing vocals of Apple Music TTML lyrics as a smaller line under the line they are sung with. They appear while that line is sung, take no room before it, and the line stays lit until they finish.
+* Show the backing vocals of Apple Music TTML lyrics as a smaller line under the line they are sung with. They appear when their own timing starts, take no room before that, and the line stays lit until they finish.
 * Redraw the translate button as two speech bubbles in both its on and off looks, to match Apple Music.
 * Rework the README with a centered header, a short feature list and the build steps.
 * Rename the app to Pear. The launcher label, the settings text and the media notification channel no longer say Flamingo.

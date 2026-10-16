@@ -576,7 +576,8 @@ fun YosLyricView(
                         }
 
                         if (isBackground) {
-                            // A backing vocal shows while its line is sung, and takes room only then.
+                            // A backing vocal shows from its own start time, while its line is still sung, and
+                            // takes room only then.
                             val groupActive = remember(index, style) {
                                 derivedStateOf {
                                     if (style.multiActive) {
@@ -586,8 +587,17 @@ fun YosLyricView(
                                     }
                                 }
                             }
+                            val started = remember(lines) { mutableStateOf(liveTimeLambda() >= lines.first().first) }
+                            LaunchedEffect(lines) {
+                                val begin = lines.first().first
+                                while (true) {
+                                    val now = liveTimeLambda() >= begin
+                                    if (started.value != now) started.value = now
+                                    delay(30)
+                                }
+                            }
                             AnimatedVisibility(
-                                visible = groupActive.value,
+                                visible = groupActive.value && started.value,
                                 enter = fadeIn(tween(300)) + expandVertically(),
                                 exit = fadeOut(tween(300)) + shrinkVertically()
                             ) {
