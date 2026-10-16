@@ -31,7 +31,8 @@ data class YosLyricCredit(val field: String, val values: List<String>) {
  *  - `(start, "")` as the translation slot. When a translation exists it is followed by
  *    `(start, "")` and `(start, translation)`, so the last pair is always the translation.
  *
- * [otherSide], [transliterations] and every other per line list have one item per entry.
+ * [otherSide], [transliterations] and every other per line list have one item per entry, except
+ * [background], which can be empty.
  * [transliterations] holds one text per lyric segment of the line, or null when the line
  * has none, so a transliteration can be drawn above the word it belongs to.
  */
@@ -42,7 +43,12 @@ data class YosLyrics(
     val transliterations: List<List<String>?>,
     val credits: List<YosLyricCredit>,
     /** Language of the lyrics when the source says so, e.g. "ja" or "zh-Hans". */
-    val language: String? = null
+    val language: String? = null,
+    /**
+     * One item per entry, true for a backing vocal. Such an entry follows the line it is sung under and is
+     * shown with it. Empty when no line has one.
+     */
+    val background: List<Boolean> = emptyList()
 ) {
     val isEmpty: Boolean get() = entries.isEmpty()
 

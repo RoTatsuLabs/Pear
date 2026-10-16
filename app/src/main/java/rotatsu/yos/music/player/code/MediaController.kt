@@ -143,6 +143,15 @@ object MediaController {
                                     line.first().first >= liveTime
                                 }
 
+                                // A backing vocal is sung under its line, so the line it belongs to stays the
+                                // current one.
+                                val backgrounds = MediaViewModelObject.backgroundForLines
+                                fun mainAtOrBefore(index: Int): Int {
+                                    var i = index
+                                    while (i >= 0 && backgrounds.getOrElse(i) { false }) i--
+                                    return i
+                                }
+
                                 val sendLyric = fun() {
                                     try {
                                         MainViewModelObject.syncLyricIndex.intValue =
@@ -182,14 +191,14 @@ object MediaController {
                                 }
 
                                 if (nextIndex != -1) {
-                                    if (nextIndex - 1 != currentLyricIndex) {
-                                        currentLyricIndex = nextIndex - 1
+                                    if (mainAtOrBefore(nextIndex - 1) != currentLyricIndex) {
+                                        currentLyricIndex = mainAtOrBefore(nextIndex - 1)
                                     }
                                     if (currentLyricIndex != -1) {
                                         sendLyric()
                                     }
-                                } else if (currentLyricIndex != lrcEntries.size - 1) {
-                                    currentLyricIndex = lrcEntries.size - 1
+                                } else if (currentLyricIndex != mainAtOrBefore(lrcEntries.size - 1)) {
+                                    currentLyricIndex = mainAtOrBefore(lrcEntries.size - 1)
                                     if (currentLyricIndex != -1) {
                                         sendLyric()
                                     }

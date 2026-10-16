@@ -16,7 +16,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -168,6 +170,17 @@ fun YosLyricView(
     val otherSideForLines = MediaViewModelObject.otherSideForLines
 
     val lrcEntries = lrcEntriesLambda()
+
+    // A backing vocal is an entry of its own under its line. Lines are counted without them, so a vocal sits where
+    // its line does and does not push the lines after it one further from the sung one.
+    val backgroundFlags = MediaViewModelObject.backgroundForLines.toList()
+    val mainOrdinals = remember(lrcEntries, backgroundFlags) {
+        var count = 0
+        IntArray(lrcEntries.size) { i ->
+            if (!backgroundFlags.getOrElse(i) { false }) count++
+            count
+        }
+    }
 
     // Transliterations and credits are only used together with the entries they were published with.
     val lyricsData = MediaViewModelObject.lyrics.value
@@ -434,19 +447,25 @@ fun YosLyricView(
                     key = { _, lines -> lines }/*,
                 contentType = { _, _ -> "YosLyricView_item" }*/
                 ) { index, lines ->
+                    val isBackground = backgroundFlags.getOrElse(index) { false }
+                    // The line this one is sung under.
+                    val mainIndex = if (isBackground) index - 1 else index
+
                     val isCurrent = remember(lines, style) {
                         derivedStateOf {
                             if (style.multiActive) {
                                 index in activeFirst.intValue..activeLast.intValue
                             } else {
-                                index == currentLyricIndex.intValue
+                                mainIndex == currentLyricIndex.intValue
                             }
                         }
                     }
 
                     val isTop = remember(lines) {
                         derivedStateOf {
-                            index == (currentLyricIndex.intValue - 1)
+                            var before = currentLyricIndex.intValue - 1
+                            while (before >= 0 && backgroundFlags.getOrElse(before) { false }) before--
+                            !isBackground && index == before
                         }
                     }
 
@@ -470,10 +489,10 @@ fun YosLyricView(
 
                         val blur = remember(index, style) {
                             derivedStateOf {
-                                if (!showStateAnimation.value || !enableLyricScroll.value || index == currentLyricIndex.intValue || !blurLambda() || !supportBlur) {
+                                if (!showStateAnimation.value || !enableLyricScroll.value || mainIndex == currentLyricIndex.intValue || !blurLambda() || !supportBlur) {
                                     0f
                                 } else {
-                                    style.blurDp(abs(index - currentLyricIndex.intValue))
+                                    style.blurDp(abs(mainOrdinals.getOrElse(index) { 0 } - mainOrdinals.getOrElse(currentLyricIndex.intValue) { 0 }))
                                 }
                             }
                         }
@@ -482,7 +501,8 @@ fun YosLyricView(
                             otherSideForLines.getOrElse(index) { false }
                         }
 
-                        YosWrapper {
+                        val itemContent: @Composable () -> Unit = {
+                            YosWrapper {
                             LyricItem(
                                 isCurrentLambda = {
                                     isCurrent.value
@@ -504,15 +524,18 @@ fun YosLyricView(
                                 mainTextBasicColor,
                                 subTextBasicColor,
                                 otherSide = otherSide,
+                                background = isBackground,
                                 liveTimeLambda = liveTimeLambda,
                                 measurer = measurer,
                                 isLyricEmpty = { isLyricEmpty.value },
-                                distanceLambda = { abs(index - currentLyricIndex.intValue) },
+                                distanceLambda = {
+                                    abs(mainOrdinals.getOrElse(index) { 0 } - mainOrdinals.getOrElse(currentLyricIndex.intValue) { 0 })
+                                },
                                 sungLambda = {
                                     if (style.multiActive) {
                                         index < activeFirst.intValue
                                     } else {
-                                        index < currentLyricIndex.intValue
+                                        mainIndex < currentLyricIndex.intValue
                                     }
                                 },
                                 browsingLambda = { !enableLyricScroll.value },
@@ -537,18 +560,42 @@ fun YosLyricView(
                                 },
                                 style = style,
                                 nextTime = {
-                                    if (index + 1 > lrcEntries.size - 1) {
-                                        0f
-                                    } else {
-                                        lrcEntries[(index + 1)].first().first
+                                    // The next line, not the backing vocal under this one.
+                                    val next = (index + 1 until lrcEntries.size).firstOrNull {
+                                        !backgroundFlags.getOrElse(it) { false }
                                     }
+                                    if (next == null) 0f else lrcEntries[next].first().first
                                 }
                             ) {
                                 Vibrator.doubleClick(context)
-                                currentLyricIndex.intValue = index
-                                focusIndex.intValue = index
+                                currentLyricIndex.intValue = mainIndex
+                                focusIndex.intValue = mainIndex
                                 mediaEvent.onSeek(lines.first().first.toInt())
                             }
+                            }
+                        }
+
+                        if (isBackground) {
+                            // A backing vocal shows while its line is sung, and takes room only then.
+                            val groupActive = remember(index, style) {
+                                derivedStateOf {
+                                    if (style.multiActive) {
+                                        mainIndex in activeFirst.intValue..activeLast.intValue
+                                    } else {
+                                        mainIndex == currentLyricIndex.intValue
+                                    }
+                                }
+                            }
+                            AnimatedVisibility(
+                                visible = groupActive.value,
+                                enter = fadeIn(tween(300)) + expandVertically(),
+                                exit = fadeOut(tween(300)) + shrinkVertically()
+                            ) {
+                                // AMLL draws its backing lines at 0.4 opacity.
+                                Box(Modifier.graphicsLayer { alpha = 0.4f }) { itemContent() }
+                            }
+                        } else {
+                            itemContent()
                         }
                     }
                 }
@@ -567,7 +614,11 @@ fun YosLyricView(
         YosWrapper {
             LaunchedEffect(lrcEntries, style) {
                 val starts = lrcEntries.map { it.first().first }
-                val ends = lrcEntries.map { YosLyricStack.lineEnd(it) }
+                val ends = lrcEntries.map { YosLyricStack.lineEnd(it) }.toMutableList()
+                // A line stays sung until its backing vocal has finished too, as AMLL keeps a group lit.
+                for (i in ends.indices) {
+                    if (backgroundFlags.getOrElse(i) { false } && i > 0) ends[i - 1] = maxOf(ends[i - 1], ends[i])
+                }
                 while (true) {
                     val real = currentLyricIndex.intValue
                     if (style.multiActive) {
@@ -580,17 +631,20 @@ fun YosLyricView(
                         if (activeLast.intValue != last) activeLast.intValue = last
                         focusIndex.intValue = first
                     } else {
-                        val next = lrcEntries.getOrNull(real + 1)
-                        val ahead = if (next == null) {
+                        // The next line to sing is the next one that is not a backing vocal.
+                        val nextMain = (real + 1 until lrcEntries.size).firstOrNull {
+                            !backgroundFlags.getOrElse(it) { false }
+                        }
+                        val ahead = if (nextMain == null) {
                             real
                         } else {
-                            val gap = YosLyricStack.gapBefore(lrcEntries, real + 1)
+                            val gap = YosLyricStack.gapBefore(lrcEntries, nextMain)
                             YosLyricStack.focusIndex(
                                 starts,
                                 liveTimeLambda() + style.scrollLead(gap).toFloat()
                             )
                         }
-                        focusIndex.intValue = if (ahead == real + 1) ahead else real
+                        focusIndex.intValue = if (nextMain != null && ahead == nextMain) ahead else real
                     }
                     delay(30)
                 }
@@ -952,6 +1006,7 @@ fun LazyItemScope.LyricItem(
     browsingLambda: () -> Boolean = { false },
     staggerLambda: () -> Float = { 0f },
     otherSide: Boolean,
+    background: Boolean = false,
     liveTimeLambda: () -> Int,
     sungLambda: () -> Boolean = { false },
     style: YosLyricStyleSpec,
@@ -985,7 +1040,8 @@ fun LazyItemScope.LyricItem(
         transliteration?.takeIf { list -> list.any { it.isNotBlank() } }
     }
     val romanPerWord = romanLine != null && !isNotOneByOne.value
-    val fontScale = SettingsLibrary.LyricFontScale
+    // A backing vocal is 0.7 of the size of the line it is sung under, as in AMLL.
+    val fontScale = SettingsLibrary.LyricFontScale * (if (background) 0.7f else 1f)
     val fontWeightName = SettingsLibrary.LyricFontWeight
     val balanced = SettingsLibrary.LyricLineBalance
     val romanBelow = SettingsLibrary.LyricTransliterationBelow

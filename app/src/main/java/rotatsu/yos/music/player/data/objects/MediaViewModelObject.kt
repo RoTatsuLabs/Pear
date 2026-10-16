@@ -16,6 +16,9 @@ object MediaViewModelObject {
     val lrcEntries: MutableState<List<List<Pair<Float, String>>>> = mutableStateOf(listOf())
     val otherSideForLines = mutableStateListOf<Boolean>()
 
+    // True for an entry that is a backing vocal, sung under the entry before it. Empty when there is none.
+    val backgroundForLines = mutableStateListOf<Boolean>()
+
     // var mainLyricLines = mutableStateListOf<AnnotatedString>()
 
     val bitmap: MutableState<Uri?> = mutableStateOf(null)

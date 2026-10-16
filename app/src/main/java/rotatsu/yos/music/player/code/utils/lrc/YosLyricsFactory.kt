@@ -42,6 +42,10 @@ object YosLyricsFactory {
         if (MediaViewModelObject.otherSideForLines.toList() != lyrics.otherSide) {
             publishOtherSide(lyrics.otherSide)
         }
+        if (MediaViewModelObject.backgroundForLines.toList() != lyrics.background) {
+            MediaViewModelObject.backgroundForLines.clear()
+            MediaViewModelObject.backgroundForLines.addAll(lyrics.background)
+        }
         MediaViewModelObject.lrcEntries.value = lyrics.entries
     }
 

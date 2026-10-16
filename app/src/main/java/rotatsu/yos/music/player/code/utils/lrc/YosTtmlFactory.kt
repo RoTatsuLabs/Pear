@@ -83,7 +83,9 @@ class YosTtmlFactory(private val preferredLanguage: String? = null) {
             val segments: List<Segment>,
             val translation: String?,
             val romanSegments: List<Segment>?,
-            val otherSide: Boolean
+            val otherSide: Boolean,
+            /** The backing vocal sung under this line, if it has one. */
+            val background: Line? = null
         )
 
         val lines = mutableListOf<Line>()
@@ -94,21 +96,40 @@ class YosTtmlFactory(private val preferredLanguage: String? = null) {
             val collected = Collected()
             collect(p, begin0, collected)
 
-            val segments = collected.segments
+            val key = p.attrs["key"]
+            val agent = p.attrs["agent"]
+            val side = agent?.let { sideOfAgent[it] } ?: false
+
+            // A backing vocal is a line of its own, under the line it is sung with. Without times it cannot
+            // be one, so it stays in the text as before.
+            val backing = withoutBrackets(collected.background)
+            var backgroundLine: Line? = null
+            if (backing.any { it.begin != null && it.end != null }) {
+                val bgBegin = backing.first { it.begin != null }.begin!!
+                val bgEnd = backing.lastOrNull { it.end != null }?.end
+                backgroundLine = Line(bgBegin, bgEnd, backing, null, null, side)
+            } else {
+                for (segment in collected.background) appendText(collected, segment.text)
+            }
+
+            var segments: List<Segment> = collected.segments
+            // A paragraph that is only a backing vocal is a line like any other.
+            if (segments.none { it.text.isNotEmpty() } && backgroundLine != null) {
+                segments = backgroundLine.segments
+                backgroundLine = null
+            }
             val firstTimed = segments.firstOrNull { it.begin != null }
             val begin = begin0 ?: firstTimed?.begin ?: return // no time, no place in the song
             val lastTimed = segments.lastOrNull { it.end != null }
             val end = end0 ?: lastTimed?.end
 
             if (segments.none { it.text.isNotEmpty() }) return
-            val key = p.attrs["key"]
-            val agent = p.attrs["agent"]
 
             val translation = collected.translation?.ifBlank { null }
                 ?: key?.let { translations[it] }
             val roman = collected.roman ?: key?.let { transliterations[it] }
 
-            lines += Line(begin, end, segments, translation, roman, agent?.let { sideOfAgent[it] } ?: false)
+            lines += Line(begin, end, segments, translation, roman, side, backgroundLine)
         }
 
         fun walk(node: Node) {
@@ -124,11 +145,13 @@ class YosTtmlFactory(private val preferredLanguage: String? = null) {
         val entries = mutableListOf<List<Pair<Float, String>>>()
         val sides = mutableListOf<Boolean>()
         val roman = mutableListOf<List<String>?>()
+        val background = mutableListOf<Boolean>()
 
         fun blank(time: Float, side: Boolean) {
             entries += listOf(time to "", time to "", time to "")
             sides += side
             roman += null
+            background += false
         }
 
         if (sorted.first().begin > YosLrcFactory.BLANK_LINE_MAX_GAP_MS) blank(0f, false)
@@ -138,6 +161,15 @@ class YosTtmlFactory(private val preferredLanguage: String? = null) {
             entries += entry
             sides += line.otherSide
             roman += line.romanSegments?.let { align(slots, it) }
+            background += false
+
+            // Its backing vocal follows it, wherever its own time falls among the other lines.
+            line.background?.let { backing ->
+                entries += toEntry(backing.begin, backing.segments, null).first
+                sides += backing.otherSide
+                roman += null
+                background += true
+            }
 
             val next = sorted.getOrNull(index + 1)
             val lineEnd = line.end
@@ -152,7 +184,8 @@ class YosTtmlFactory(private val preferredLanguage: String? = null) {
             otherSide = sides,
             transliterations = roman,
             credits = credits,
-            language = root.attrs["lang"]?.ifBlank { null }
+            language = root.attrs["lang"]?.ifBlank { null },
+            background = if (background.any { it }) background else emptyList()
         )
     }
 
@@ -243,8 +276,20 @@ class YosTtmlFactory(private val preferredLanguage: String? = null) {
 
     private class Collected {
         val segments = mutableListOf<Segment>()
+        val background = mutableListOf<Segment>()
         var translation: String? = null
         var roman: List<Segment>? = null
+    }
+
+    /**
+     * The segments of a backing vocal without the brackets Apple Music writes round it, as AMLL reads it: the
+     * opening ones off the first segment and the closing ones off the last.
+     */
+    private fun withoutBrackets(segments: List<Segment>): List<Segment> {
+        val copy = segments.map { Segment(it.text, it.begin, it.end) }
+        copy.firstOrNull()?.let { it.text = it.text.replaceFirst(OPENING_BRACKETS, "").trimStart() }
+        copy.lastOrNull()?.let { it.text = it.text.replaceFirst(CLOSING_BRACKETS, "").trimEnd() }
+        return copy.filter { it.text.isNotEmpty() }
     }
 
     /** Walks one paragraph (or one transliteration line) and gathers its segments. */
@@ -267,23 +312,41 @@ class YosTtmlFactory(private val preferredLanguage: String? = null) {
                     out.roman = inner.segments
                 }
 
-                child.elements().any { it.name == "span" } -> collect(child, paragraphBegin, out)
-                else -> {
-                    val text = child.text().replace(WHITESPACE, " ")
-                    var begin = parseTime(child.attrs["begin"])
-                    var end = parseTime(child.attrs["end"])
-                    // Times before the paragraph start are offsets inside the paragraph.
-                    if (paragraphBegin != null && begin != null && begin < paragraphBegin) {
-                        begin += paragraphBegin
-                        end = end?.plus(paragraphBegin)
-                    }
-                    if (begin != null && end != null) {
-                        if (text.isNotEmpty()) out.segments += Segment(text, begin, end)
+                child.attrs["role"] == "x-bg" -> {
+                    val inner = Collected()
+                    if (child.elements().any { it.name == "span" }) {
+                        collect(child, paragraphBegin, inner)
                     } else {
-                        appendText(out, text)
+                        addSpan(child, paragraphBegin, inner)
+                    }
+                    if (inner.segments.isEmpty()) {
+                        // Plain text with no times stays in the line, as it always did.
+                        appendText(out, child.text().replace(WHITESPACE, " "))
+                    } else {
+                        out.background += inner.segments
                     }
                 }
+
+                child.elements().any { it.name == "span" } -> collect(child, paragraphBegin, out)
+                else -> addSpan(child, paragraphBegin, out)
             }
+        }
+    }
+
+    /** A span with text and, when it has them, its own times. */
+    private fun addSpan(child: Node, paragraphBegin: Float?, out: Collected) {
+        val text = child.text().replace(WHITESPACE, " ")
+        var begin = parseTime(child.attrs["begin"])
+        var end = parseTime(child.attrs["end"])
+        // Times before the paragraph start are offsets inside the paragraph.
+        if (paragraphBegin != null && begin != null && begin < paragraphBegin) {
+            begin += paragraphBegin
+            end = end?.plus(paragraphBegin)
+        }
+        if (begin != null && end != null) {
+            if (text.isNotEmpty()) out.segments += Segment(text, begin, end)
+        } else {
+            appendText(out, text)
         }
     }
 
@@ -403,6 +466,8 @@ class YosTtmlFactory(private val preferredLanguage: String? = null) {
 
     companion object {
         private val WHITESPACE = Regex("\\s+")
+        private val OPENING_BRACKETS = Regex("^[(（]+")
+        private val CLOSING_BRACKETS = Regex("[)）]+$")
         private val OFFSET_TIME = Regex("^(\\d+(?:\\.\\d+)?)(h|m|s|ms)$")
 
         /** Reads a TTML time in milliseconds. Clock times and offset times are supported. */

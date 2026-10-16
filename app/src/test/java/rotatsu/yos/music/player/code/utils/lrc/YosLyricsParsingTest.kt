@@ -124,6 +124,73 @@ class YosLyricsParsingTest {
         )
     }
 
+    private fun withBackground(first: String, second: String = "") = """
+        <tt xmlns="http://www.w3.org/ns/ttml" xmlns:itunes="http://music.apple.com/lyric-ttml-internal"
+            xmlns:ttm="http://www.w3.org/ns/ttml#metadata" itunes:timing="Word" xml:lang="en">
+          <head><metadata><ttm:agent type="person" xml:id="v1"/></metadata></head>
+          <body dur="1:00.000"><div begin="28.651" end="40.000">
+            $first
+            $second
+          </div></body>
+        </tt>
+    """.trimIndent()
+
+    private val hauntLine =
+        """<p begin="28.651" end="34.839" ttm:agent="v1" itunes:key="L3">""" +
+            """<span begin="28.651" end="29.000">Or</span> <span begin="29.000" end="30.874">you?</span>""" +
+            """<span ttm:role="x-bg"><span begin="30.624" end="34.839">(Haunt)</span></span></p>"""
+
+    private val nextLine =
+        """<p begin="33.577" end="35.784" ttm:agent="v1" itunes:key="L4">""" +
+            """<span begin="33.577" end="34.500">I</span> <span begin="34.500" end="35.784">know</span></p>"""
+
+    @Test
+    fun ttmlBackingVocalIsALineOfItsOwnUnderItsLine() {
+        val lyrics = YosTtmlFactory("en").parse(withBackground(hauntLine, nextLine))
+        val main = lyrics.indexOfText("Or you?")
+        assertTrue(main >= 0)
+        // The vocal follows its line, ahead of a line that starts before it ends.
+        assertEquals("Haunt", YosLyrics.segmentsOf(lyrics.entries[main + 1]).joinToString("") { it.second })
+        assertEquals(main + 2, lyrics.indexOfText("I know"))
+        assertEquals(30624f, lyrics.entries[main + 1].first().first)
+        assertEquals(34839f, YosLyrics.segmentsOf(lyrics.entries[main + 1]).last().first)
+        assertEquals(lyrics.entries.size, lyrics.background.size)
+        assertEquals(listOf(main + 1), lyrics.background.withIndex().filter { it.value }.map { it.index })
+    }
+
+    @Test
+    fun ttmlBracketsAreTakenOffTheBackingVocalOnly() {
+        val line = """<p begin="10.000" end="14.000" itunes:key="L1"><span begin="10.000" end="11.000">Main (side)</span>""" +
+            """<span ttm:role="x-bg"><span begin="11.000" end="12.000">(Ooh</span> <span begin="12.000" end="14.000">ahh)</span></span></p>"""
+        val lyrics = YosTtmlFactory("en").parse(withBackground(line))
+        assertEquals("Main (side)", YosLyrics.segmentsOf(lyrics.entries[lyrics.indexOfText("Main (side)")]).joinToString("") { it.second })
+        val vocal = lyrics.background.indexOf(true)
+        assertEquals("Ooh ahh", YosLyrics.segmentsOf(lyrics.entries[vocal]).joinToString("") { it.second })
+    }
+
+    @Test
+    fun ttmlParagraphOfOnlyABackingVocalIsAnOrdinaryLine() {
+        val line = """<p begin="10.000" end="14.000" itunes:key="L1"><span ttm:role="x-bg">""" +
+            """<span begin="10.000" end="14.000">(Alone)</span></span></p>"""
+        val lyrics = YosTtmlFactory("en").parse(withBackground(line))
+        assertTrue(lyrics.indexOfText("Alone") >= 0)
+        assertTrue(lyrics.background.none { it })
+    }
+
+    @Test
+    fun ttmlBackingVocalWithoutTimesStaysInTheLine() {
+        val line = """<p begin="10.000" end="14.000" itunes:key="L1"><span begin="10.000" end="12.000">Main</span>""" +
+            """<span ttm:role="x-bg">(quiet)</span></p>"""
+        val lyrics = YosTtmlFactory("en").parse(withBackground(line))
+        assertTrue(lyrics.background.none { it })
+        assertTrue(lyrics.entries.any { e -> YosLyrics.segmentsOf(e).joinToString("") { it.second }.contains("quiet") })
+    }
+
+    @Test
+    fun lyricsWithoutBackingVocalsHaveNoBackgroundList() {
+        assertTrue(YosTtmlFactory("en").parse(appleStyle).background.isEmpty())
+    }
+
     @Test
     fun ttmlTranslationFollowsThePreferredLanguage() {
         assertEquals("Hello world", YosTtmlFactory("en").parse(appleStyle).entries[1].last().second)
