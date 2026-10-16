@@ -12,6 +12,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
@@ -51,6 +52,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -79,6 +82,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
@@ -107,6 +111,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -295,6 +300,23 @@ fun NowPlaying(
                 nowPage = { nowPageLambda() },
                 showMiniPlayer = showMiniPlayer
             )
+        }
+
+        if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            LandscapeContent(
+                musicLambda = { thisMusicPlaying.value },
+                isPlayingLambda = isPlayingStatusLambda,
+                isPlayingOnChanged = isPlayingOnChanged,
+                nowPageLambda = nowPageLambda,
+                nowPageOnChanged = nowPageOnChanged,
+                lrcEntries = { lrcEntries.value },
+                translation = translation,
+                shuffleModeEnabled = shuffleModeEnabled,
+                repeatMode = repeatMode,
+                mainViewModel = mainViewModel,
+                mediaViewModel = mediaViewModel
+            )
+            return@Surface
         }
 
         // 实际显示区
@@ -891,7 +913,8 @@ private fun PlayingList(
     shuffleModeOnChanged: (Boolean) -> Unit,
     repeatModeLambda: () -> Int,
     repeatModeOnChanged: (Int) -> Unit,
-    thisMusicPlayingLambda: () -> YosMediaItem?
+    thisMusicPlayingLambda: () -> YosMediaItem?,
+    heightFraction: Float = 0.545f
 ) {
     val context = LocalContext.current
 
@@ -905,7 +928,7 @@ private fun PlayingList(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.545f),
+                .fillMaxHeight(heightFraction),
         ) {
             val hide = remember("PlayingList_hide") {
                 derivedStateOf {
@@ -1222,7 +1245,8 @@ private fun Lyric(
     translationLambda: () -> Boolean,
     mainViewModel: MainViewModel,
     mediaViewModel: MediaViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    landscape: Boolean = false
 ) = YosWrapper {
 
     val context = LocalContext.current
@@ -1236,7 +1260,7 @@ private fun Lyric(
         YosWrapper {
             println("重组：YosLyricView 外层 1")
 
-            Spacer(modifier = Modifier.statusBarsHeight(110.dp))
+            Spacer(modifier = if (landscape) Modifier.height(4.dp) else Modifier.statusBarsHeight(110.dp))
 
 
             YosLyricView(
@@ -1665,7 +1689,8 @@ private fun PlayerControl(
     nowPage: () -> String,
     onSlider: () -> Unit,
     onWhile: suspend () -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
+    showBar: Boolean = true
 ) {
     val playingDuration = rememberSaveable(key = "PlayerControl_playingDuration") {
         mutableLongStateOf(0L)
@@ -1916,88 +1941,8 @@ private fun PlayerControl(
             }
 
             // 底部 歌词&播放列表
-            YosWrapper {
-                //println("重组：控制区域内部 - 底部栏")
-                Row(
-                    modifier = Modifier
-                        .overlayEffect()
-                        .fillMaxWidth()
-                        .alpha(0.4f),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    val dp = 32.dp
-                    Box(
-                        modifier = Modifier
-                            .height(36.dp)
-                            .weight(1f)
-                            .clickable(
-                                onClick = { onLyrics() },
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AnimatedContent(
-                            targetState = nowPage() == Lyric,
-                            transitionSpec = {
-                                fadeIn() togetherWith fadeOut()
-                            }) {
-                            if (it) {
-                                Icon(
-                                    painterResource(id = R.drawable.ic_nowplaying_lyricson),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(dp)
-                                )
-                            } else {
-                                Icon(
-                                    painterResource(id = R.drawable.ic_nowplaying_lyrics),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(dp)
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.weight(0.1f))
-
-                    AirPlay()
-
-                    Spacer(modifier = Modifier.weight(0.1f))
-
-                    Box(
-                        modifier = Modifier
-                            .height(36.dp)
-                            .weight(1f)
-                            .clickable(
-                                onClick = { onPlaylist() },
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AnimatedContent(
-                            targetState = nowPage() == PlayingList,
-                            transitionSpec = {
-                                fadeIn() togetherWith fadeOut()
-                            }) {
-                            if (it) {
-                                Icon(
-                                    painterResource(id = R.drawable.ic_nowplaying_queueon),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(dp)
-                                )
-                            } else {
-                                Icon(
-                                    painterResource(id = R.drawable.ic_nowplaying_queue),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(dp)
-                                )
-                            }
-                        }
-                    }
-                }
+            if (showBar) {
+                LyricsQueueBar(nowPage = nowPage, onLyrics = onLyrics, onPlaylist = onPlaylist)
             }
 
             // 边距填充
@@ -2005,6 +1950,290 @@ private fun PlayerControl(
                 Spacer(modifier = Modifier.navigationBarsHeight(5.dp))
             }*/
             // 为显示设备名称，迁移到 AirPlay 底部处理
+        }
+    }
+}
+
+@Composable
+private fun LyricsQueueBar(
+    nowPage: () -> String,
+    onLyrics: () -> Unit,
+    onPlaylist: () -> Unit
+) {
+    YosWrapper {
+        //println("重组：控制区域内部 - 底部栏")
+        Row(
+            modifier = Modifier
+                .overlayEffect()
+                .fillMaxWidth()
+                .alpha(0.4f),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            val dp = 32.dp
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .weight(1f)
+                    .clickable(
+                        onClick = { onLyrics() },
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedContent(
+                    targetState = nowPage() == Lyric,
+                    transitionSpec = {
+                        fadeIn() togetherWith fadeOut()
+                    }) {
+                    if (it) {
+                        Icon(
+                            painterResource(id = R.drawable.ic_nowplaying_lyricson),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(dp)
+                        )
+                    } else {
+                        Icon(
+                            painterResource(id = R.drawable.ic_nowplaying_lyrics),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(0.1f))
+
+            AirPlay()
+
+            Spacer(modifier = Modifier.weight(0.1f))
+
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .weight(1f)
+                    .clickable(
+                        onClick = { onPlaylist() },
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedContent(
+                    targetState = nowPage() == PlayingList,
+                    transitionSpec = {
+                        fadeIn() togetherWith fadeOut()
+                    }) {
+                    if (it) {
+                        Icon(
+                            painterResource(id = R.drawable.ic_nowplaying_queueon),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(dp)
+                        )
+                    } else {
+                        Icon(
+                            painterResource(id = R.drawable.ic_nowplaying_queue),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LandscapeContent(
+    musicLambda: () -> YosMediaItem?,
+    isPlayingLambda: () -> Boolean,
+    isPlayingOnChanged: (Boolean) -> Unit,
+    nowPageLambda: () -> String,
+    nowPageOnChanged: (String) -> Unit,
+    lrcEntries: () -> List<List<Pair<Float, String>>>,
+    translation: MutableState<Boolean>,
+    shuffleModeEnabled: MutableState<Boolean>,
+    repeatMode: MutableIntState,
+    mainViewModel: MainViewModel,
+    mediaViewModel: MediaViewModel
+) {
+    val context = LocalContext.current
+    val hasTranslation = remember {
+        derivedStateOf { lrcEntries().any { it.lastOrNull()?.second?.isNotBlank() == true } }
+    }
+
+    Row(
+        Modifier
+            .fillMaxSize()
+            .safeDrawingPadding()
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Cover
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(end = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            val scale = animateFloatAsState(
+                targetValue = if (isPlayingLambda()) 0f else 1f,
+                animationSpec = if (isPlayingLambda()) {
+                    SpringSpec(stiffness = 300f, dampingRatio = 1f, visibilityThreshold = 0.001f)
+                } else {
+                    TweenSpec(durationMillis = 350, easing = EaseOutQuart)
+                },
+                visibilityThreshold = 0.001f
+            )
+            ShadowImageWithCache(
+                dataLambda = { musicLambda()?.thumb },
+                contentDescription = null,
+                modifier = Modifier
+                    .aspectRatio(1f)
+                    .padding((4 + 24 * scale.value).dp),
+                imageQuality = ImageQuality.RAW,
+                shadowOverlay = true
+            )
+        }
+
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(start = 12.dp)
+        ) {
+            val page = nowPageLambda()
+
+            // Title, artist and actions
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AnimatedContent(
+                    targetState = musicLambda(),
+                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = it?.title ?: defaultTitle,
+                            fontSize = 19.5.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = it?.artistsName ?: defaultArtistsName,
+                            fontSize = 18.5.sp,
+                            modifier = Modifier.overlayEffect(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = Color.White.copy(alpha = 0.35f)
+                        )
+                    }
+                }
+
+                if (page == Lyric && hasTranslation.value) {
+                    Box(
+                        modifier = Modifier
+                            .overlayEffect()
+                            .alpha(0.4f)
+                            .clickable(
+                                onClick = {
+                                    Vibrator.click(context)
+                                    translation.value = !translation.value
+                                    SettingsLibrary.NowPlayingTranslation = translation.value
+                                },
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painterResource(
+                                id = if (translation.value) {
+                                    R.drawable.ic_nowplaying_translateon
+                                } else {
+                                    R.drawable.ic_nowplaying_translate
+                                }
+                            ),
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                }
+
+                ActionButtonsRow { musicLambda() }
+            }
+
+            Crossfade(
+                targetState = page,
+                animationSpec = tween(durationMillis = 350, easing = PageEasing),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                when (it) {
+                    Lyric -> Lyric(
+                        lrcEntries = lrcEntries,
+                        weightLambda = { false },
+                        translationLambda = { translation.value },
+                        mainViewModel = mainViewModel,
+                        mediaViewModel = mediaViewModel,
+                        onBackClick = {},
+                        landscape = true
+                    )
+
+                    PlayingList -> PlayingList(
+                        shuffleModeEnabledLambda = { shuffleModeEnabled.value },
+                        shuffleModeOnChanged = { on -> shuffleModeEnabled.value = on },
+                        repeatModeLambda = { repeatMode.intValue },
+                        repeatModeOnChanged = { mode -> repeatMode.intValue = mode },
+                        thisMusicPlayingLambda = musicLambda,
+                        heightFraction = 1f
+                    )
+
+                    else -> PlayerControl(
+                        isPlayingLambda = isPlayingLambda,
+                        isPlayingOnChanged = isPlayingOnChanged,
+                        onPrevious = { mediaControl?.seekToPreviousMediaItem() },
+                        onStatus = { status ->
+                            if (status) mediaControl?.fadePlay() else mediaControl?.fadePause()
+                        },
+                        onNext = { mediaControl?.seekToNextMediaItem() },
+                        onSeek = { position -> mediaControl?.seekTo(position.toLong()) },
+                        onLyrics = {},
+                        onPlaylist = {},
+                        nowPage = nowPageLambda,
+                        onSlider = {},
+                        onWhile = {
+                            shuffleModeEnabled.value = mediaControl?.shuffleModeEnabled ?: false
+                            repeatMode.intValue = mediaControl?.repeatMode ?: REPEAT_MODE_OFF
+                        },
+                        modifier = Modifier.fillMaxHeight(),
+                        showBar = false
+                    )
+                }
+            }
+
+            Box(Modifier.padding(horizontal = 25.dp)) {
+                LyricsQueueBar(
+                    nowPage = nowPageLambda,
+                    onLyrics = {
+                        nowPageOnChanged(if (nowPageLambda() == Lyric) Album else Lyric)
+                    },
+                    onPlaylist = {
+                        nowPageOnChanged(if (nowPageLambda() == PlayingList) Album else PlayingList)
+                    }
+                )
+            }
         }
     }
 }

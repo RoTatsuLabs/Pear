@@ -85,6 +85,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
@@ -257,6 +258,8 @@ fun YosLyricView(
         }*/
 
         val height = rememberSaveable(key = "YosLyricView_height") { mutableIntStateOf(0) }
+        val orientation = LocalConfiguration.current.orientation
+        val heightOrientation = rememberSaveable(key = "YosLyricView_heightOrientation") { mutableIntStateOf(orientation) }
 
         // While the player controls show they cover the lower part of the list, so the sung line rests
         // near the top, clear of them, and moves back when they are hidden.
@@ -434,8 +437,9 @@ fun YosLyricView(
                     }
                     .nestedScroll(nestedScrollConnection)
                     .onSizeChanged {
-                        if (height.intValue == 0 && it.height != 0) {
+                        if ((height.intValue == 0 || heightOrientation.intValue != orientation) && it.height != 0) {
                             height.intValue = it.height
+                            heightOrientation.intValue = orientation
                             //println("计算歌词视图高度：${height.intValue}")
                         }
                     }
