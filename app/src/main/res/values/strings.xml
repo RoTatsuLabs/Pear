@@ -75,6 +75,7 @@
     <string name="page_library_album_info_others">%1$d Songs, about %2$d minutes</string>
     <string name="page_library_artists">Artists</string>
     <string name="page_library_artist_desc">%1$d Songs, %2$d Albums</string>
+    <string name="nowplaying_go_to_artist">Go to %s</string>
     <string name="page_library_playlists">Playlists</string>
     <string name="page_library_search_songs">Search in Songs</string>
     <string name="page_library_search_artists">Search in Artists</string>

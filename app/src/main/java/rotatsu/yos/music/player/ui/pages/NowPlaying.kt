@@ -70,6 +70,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ripple
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ProgressIndicatorDefaults
@@ -121,6 +123,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastMap
@@ -157,6 +160,7 @@ import rotatsu.yos.music.player.code.utils.player.FadeExo.fadePlay
 import rotatsu.yos.music.player.data.libraries.FavPlayListLibrary
 import rotatsu.yos.music.player.data.libraries.SettingsLibrary
 import rotatsu.yos.music.player.data.libraries.YosMediaItem
+import rotatsu.yos.music.player.data.libraries.artistsList
 import rotatsu.yos.music.player.data.libraries.artistsName
 import rotatsu.yos.music.player.data.libraries.defaultArtistsName
 import rotatsu.yos.music.player.data.libraries.defaultTitle
@@ -223,6 +227,7 @@ fun NowPlaying(
     isPlayingOnChanged: (Boolean) -> Unit,
     nowPageLambda: () -> String,
     showMiniPlayer: () -> Boolean,
+    onOpenArtist: (String) -> Unit,
     nowPageOnChanged: (String) -> Unit
 ) =
     Surface(
@@ -314,7 +319,8 @@ fun NowPlaying(
                 shuffleModeEnabled = shuffleModeEnabled,
                 repeatMode = repeatMode,
                 mainViewModel = mainViewModel,
-                mediaViewModel = mediaViewModel
+                mediaViewModel = mediaViewModel,
+                onOpenArtist = onOpenArtist
             )
             return@Surface
         }
@@ -502,14 +508,10 @@ fun NowPlaying(
                                                             overflow = TextOverflow.Ellipsis,
                                                             fontWeight = FontWeight.Medium
                                                         )
-                                                        Text(
-                                                            text = it?.artistsName
-                                                                ?: defaultArtistsName,
+                                                        ArtistName(
+                                                            music = it,
                                                             fontSize = 18.5.sp,
-                                                            modifier = Modifier.overlayEffect(),
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis,
-                                                            color = Color.White.copy(alpha = 0.35f)
+                                                            onOpenArtist = onOpenArtist
                                                         )
                                                     }
 
@@ -523,7 +525,7 @@ fun NowPlaying(
                                                                 boundsTransform = SharedBounds
                                                             )
                                                         ) {
-                                                            ActionButtonsRow {
+                                                            ActionButtonsRow(onOpenArtist = onOpenArtist) {
                                                                 it
                                                             }
                                                         }
@@ -550,6 +552,7 @@ fun NowPlaying(
                                             albumUrlLambda = {
                                                 thisMusicPlaying.value?.thumb
                                             },
+                                            onOpenArtist = onOpenArtist,
                                             musicPlayingLambda = { thisMusicPlaying.value },
                                             titleModifier = Modifier.sharedElementWithCallerManagedVisibility(
                                                 sharedContentState = rememberSharedContentState(
@@ -589,6 +592,7 @@ fun NowPlaying(
                                             albumUrlLambda = {
                                                 thisMusicPlaying.value?.thumb
                                             },
+                                            onOpenArtist = onOpenArtist,
                                             musicPlayingLambda = { thisMusicPlaying.value },
                                             titleModifier = Modifier.sharedElementWithCallerManagedVisibility(
                                                 sharedContentState = rememberSharedContentState(
@@ -1363,7 +1367,12 @@ private fun Lyric(
 }
 
 @Composable
-private fun ActionButtonsRow(musicPlayingLambda: () -> YosMediaItem?) {
+private fun ActionButtonsRow(
+    onOpenArtist: (String) -> Unit,
+    musicPlayingLambda: () -> YosMediaItem?
+) {
+    val menuOpen = remember { mutableStateOf(false) }
+    val artists = knownArtists(musicPlayingLambda())
     Row(
         modifier = Modifier
             .overlayEffect(),
@@ -1424,43 +1433,51 @@ private fun ActionButtonsRow(musicPlayingLambda: () -> YosMediaItem?) {
 
         Spacer(modifier = Modifier.width(14.dp))
 
-        Box(
-            modifier = Modifier
-                .graphicsLayer {
-                    rotationZ = 90f
-                    compositingStrategy = CompositingStrategy.ModulateAlpha
-                }
-                .clickable(
-                    onClick = {
-
-                    },
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() })
-                .size(dp),
-            contentAlignment = Alignment.Center
-        ) {
-            AnimatedContent(
-                targetState = false,
-                transitionSpec = {
-                    fadeIn() togetherWith fadeOut()
-                }) {
-                if (it) {
-                    Icon(
-                        painterResource(id = R.drawable.ic_nowplaying_more_fill),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(dp)
-                    )
-                } else {
-                    Icon(
-                        painterResource(id = R.drawable.ic_nowplaying_more),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .overlayEffect()
-                            .size(dp)
-                    )
+        Box {
+            Box(
+                modifier = Modifier
+                    .graphicsLayer {
+                        rotationZ = 90f
+                        compositingStrategy = CompositingStrategy.ModulateAlpha
+                    }
+                    .clickable(
+                        onClick = {
+                            if (artists.isNotEmpty()) menuOpen.value = true
+                        },
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() })
+                    .size(dp),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedContent(
+                    targetState = false,
+                    transitionSpec = {
+                        fadeIn() togetherWith fadeOut()
+                    }) {
+                    if (it) {
+                        Icon(
+                            painterResource(id = R.drawable.ic_nowplaying_more_fill),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(dp)
+                        )
+                    } else {
+                        Icon(
+                            painterResource(id = R.drawable.ic_nowplaying_more),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .overlayEffect()
+                                .size(dp)
+                        )
+                    }
                 }
             }
+            ArtistMenu(
+                expanded = menuOpen.value,
+                onDismiss = { menuOpen.value = false },
+                artists = artists,
+                onOpenArtist = onOpenArtist
+            )
         }
     }
 }
@@ -1472,6 +1489,7 @@ private fun PlayingBar(
     musicPlayingLambda: () -> YosMediaItem?,
     titleModifier: Modifier = Modifier,
     actionsModifier: Modifier = Modifier,
+    onOpenArtist: (String) -> Unit,
     onAlbumClick: () -> Unit
 ) = YosWrapper {
     Row(
@@ -1510,20 +1528,16 @@ private fun PlayingBar(
                 fontWeight = FontWeight.Medium,
                 lineHeight = 16.5.sp
             )
-            Text(
-                text = musicPlayingLambda()?.artistsName
-                    ?: defaultArtistsName,
+            ArtistName(
+                music = musicPlayingLambda(),
                 fontSize = 15.sp,
-                modifier = Modifier.overlayEffect(),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = Color.White.copy(alpha = 0.35f)
+                onOpenArtist = onOpenArtist
             )
         }
 
         YosWrapper {
             Box(actionsModifier) {
-                ActionButtonsRow(musicPlayingLambda)
+                ActionButtonsRow(onOpenArtist = onOpenArtist, musicPlayingLambda = musicPlayingLambda)
             }
         }
     }
@@ -1954,6 +1968,69 @@ private fun PlayerControl(
     }
 }
 
+private fun knownArtists(music: YosMediaItem?): List<String> =
+    (music?.artistsList ?: emptyList()).filter { it != defaultArtistsName }
+
+@Composable
+private fun ArtistMenu(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    artists: List<String>,
+    onOpenArtist: (String) -> Unit
+) {
+    DropdownMenu(expanded = expanded && artists.isNotEmpty(), onDismissRequest = onDismiss) {
+        artists.forEach { artist ->
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(id = R.string.nowplaying_go_to_artist, artist),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
+                onClick = {
+                    onDismiss()
+                    onOpenArtist(artist)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ArtistName(
+    music: YosMediaItem?,
+    fontSize: TextUnit,
+    onOpenArtist: (String) -> Unit
+) {
+    val artists = knownArtists(music)
+    val menuOpen = remember { mutableStateOf(false) }
+    Box {
+        Text(
+            text = music?.artistsName ?: defaultArtistsName,
+            fontSize = fontSize,
+            modifier = Modifier
+                .overlayEffect()
+                .clickable(
+                    enabled = artists.isNotEmpty(),
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) {
+                    if (artists.size == 1) onOpenArtist(artists[0]) else menuOpen.value = true
+                },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = Color.White.copy(alpha = 0.35f)
+        )
+        ArtistMenu(
+            expanded = menuOpen.value,
+            onDismiss = { menuOpen.value = false },
+            artists = artists,
+            onOpenArtist = onOpenArtist
+        )
+    }
+}
+
 @Composable
 private fun LyricsQueueBar(
     nowPage: () -> String,
@@ -2057,7 +2134,8 @@ private fun LandscapeContent(
     shuffleModeEnabled: MutableState<Boolean>,
     repeatMode: MutableIntState,
     mainViewModel: MainViewModel,
-    mediaViewModel: MediaViewModel
+    mediaViewModel: MediaViewModel,
+    onOpenArtist: (String) -> Unit
 ) {
     val context = LocalContext.current
     val hasTranslation = remember {
@@ -2129,13 +2207,10 @@ private fun LandscapeContent(
                             overflow = TextOverflow.Ellipsis,
                             fontWeight = FontWeight.Medium
                         )
-                        Text(
-                            text = it?.artistsName ?: defaultArtistsName,
+                        ArtistName(
+                            music = it,
                             fontSize = 18.5.sp,
-                            modifier = Modifier.overlayEffect(),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = Color.White.copy(alpha = 0.35f)
+                            onOpenArtist = onOpenArtist
                         )
                     }
                 }
@@ -2170,7 +2245,7 @@ private fun LandscapeContent(
                     Spacer(Modifier.width(8.dp))
                 }
 
-                ActionButtonsRow { musicLambda() }
+                ActionButtonsRow(onOpenArtist = onOpenArtist) { musicLambda() }
             }
 
             Crossfade(

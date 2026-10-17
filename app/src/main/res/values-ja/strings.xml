@@ -75,6 +75,7 @@
     <string name="page_library_album_info_others">%1$d 曲, 約 %2$d 分</string>
     <string name="page_library_artists">アーティスト</string>
     <string name="page_library_artist_desc">%1$d 曲, %2$d アルバム</string>
+    <string name="nowplaying_go_to_artist">%s のページへ</string>
     <string name="page_library_playlists">プレイリスト</string>
     <string name="page_library_search_songs">曲を検索</string>
     <string name="page_library_search_artists">アーティスト内を検索</string>

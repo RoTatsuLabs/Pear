@@ -116,8 +116,10 @@ import rotatsu.yos.music.player.data.libraries.defaultTitle
 import rotatsu.yos.music.player.data.models.ImageViewModel
 import rotatsu.yos.music.player.data.models.MainViewModel
 import rotatsu.yos.music.player.data.models.MediaViewModel
+import rotatsu.yos.music.player.data.objects.LibraryObject
 import rotatsu.yos.music.player.data.objects.MediaViewModelObject
 import rotatsu.yos.music.player.ui.UI
+import rotatsu.yos.music.player.ui.toUI
 import rotatsu.yos.music.player.ui.UI.Settings.Companion.ExoplayerSetting
 import rotatsu.yos.music.player.ui.pages.HomeNav
 import rotatsu.yos.music.player.ui.pages.NowPlaying
@@ -818,7 +820,17 @@ class MainActivity : BaseActivity() {
                                                     isPlaying.value = it
                                                 },
                                                 nowPageLambda = { nowPageNowPlaying.value },
-                                                showMiniPlayer = { yosBottomSheetConfig.showMenu }
+                                                showMiniPlayer = { yosBottomSheetConfig.showMenu },
+                                                onOpenArtist = { artist ->
+                                                    scope.launch {
+                                                        offsetY.animateTo(0f, animationSpec = navSpec)
+                                                    }
+                                                    nowPageNowPlaying.value = Album
+                                                    if (route.value != UI.ArtistInfo || LibraryObject.getTargetArtistName() != artist) {
+                                                        LibraryObject.setTargetArtistName(artist)
+                                                        navController.toUI(UI.ArtistInfo)
+                                                    }
+                                                }
                                             ) {
                                                 nowPageNowPlaying.value = it
                                             }

@@ -75,6 +75,7 @@
     <string name="page_library_album_info_others">%1$d 首歌曲, 约 %2$d 分钟</string>
     <string name="page_library_artists">艺人</string>
     <string name="page_library_artist_desc">%1$d 首歌曲, %2$d 张专辑</string>
+    <string name="nowplaying_go_to_artist">前往 %s</string>
     <string name="page_library_playlists">播放列表</string>
     <string name="page_library_search_songs">在歌曲中搜索</string>
     <string name="page_library_search_artists">在艺人中搜索</string>
