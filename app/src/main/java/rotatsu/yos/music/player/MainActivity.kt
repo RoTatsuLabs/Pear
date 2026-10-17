@@ -127,6 +127,7 @@ import rotatsu.yos.music.player.ui.pages.RecentlyPlayed
 import rotatsu.yos.music.player.ui.pages.library.NormalMusic
 import rotatsu.yos.music.player.ui.pages.library.albums.AlbumInfo
 import rotatsu.yos.music.player.ui.pages.library.albums.LocalAlbums
+import rotatsu.yos.music.player.ui.pages.library.artists.ArtistInfo
 import rotatsu.yos.music.player.ui.pages.library.artists.LocalArtists
 import rotatsu.yos.music.player.ui.pages.library.playlists.PlayLists
 import rotatsu.yos.music.player.ui.pages.settings.Settings
@@ -457,6 +458,10 @@ class MainActivity : BaseActivity() {
                                             }
                                             composable(UI.LocalArtists) {
                                                 LocalArtists(navController)
+                                            }
+
+                                            composable(UI.ArtistInfo) {
+                                                ArtistInfo(navController)
                                             }
 
                                             composable(UI.AlbumInfo) {

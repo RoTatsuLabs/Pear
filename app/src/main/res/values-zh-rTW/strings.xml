@@ -74,6 +74,7 @@
     <string name="normal_button_shuffle">隨機播放</string>
     <string name="page_library_album_info_others">%1$d 首歌曲, 約 %2$d 分鐘</string>
     <string name="page_library_artists">藝人</string>
+    <string name="page_library_artist_desc">%1$d 首歌曲, %2$d 張專輯</string>
     <string name="page_library_playlists">播放列表</string>
     <string name="page_library_search_songs">在歌曲中搜索</string>
     <string name="page_library_search_artists">在藝人中搜索</string>

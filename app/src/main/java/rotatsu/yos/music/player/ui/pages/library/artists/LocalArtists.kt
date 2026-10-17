@@ -54,6 +54,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import rotatsu.yos.music.player.R
 import rotatsu.yos.music.player.data.libraries.MusicLibrary
+import rotatsu.yos.music.player.data.libraries.defaultAlbum
+import rotatsu.yos.music.player.data.objects.LibraryObject
+import rotatsu.yos.music.player.ui.UI
+import rotatsu.yos.music.player.ui.toUI
 import rotatsu.yos.music.player.ui.theme.withNight
 import rotatsu.yos.music.player.ui.widgets.basic.SearchTextField
 import rotatsu.yos.music.player.ui.widgets.basic.Title
@@ -99,19 +103,20 @@ fun LocalArtists(navController: NavController) {
             }
         } else {
             val useSearch = remember { derivedStateOf { searchText.value.isNotEmpty() } }
-            val list = remember { mutableStateOf(artistsList) }
+            val list = remember { mutableStateOf(artistsList.sortedWith(String.CASE_INSENSITIVE_ORDER)) }
 
             YosWrapper {
                 LaunchedEffect(searchText.value) {
                     withContext(Dispatchers.IO) {
                         val filteredList = withContext(Dispatchers.IO) {
-                            if (useSearch.value) {
+                            val matches = if (useSearch.value) {
                                 MusicLibrary.artists.asSequence().filter { artist ->
                                     artist.contains(searchText.value, ignoreCase = true)
                                 }.toList()
                             } else {
                                 artistsList
                             }
+                            matches.sortedWith(String.CASE_INSENSITIVE_ORDER)
                         }
                         list.value = filteredList
                     }
@@ -149,7 +154,8 @@ fun LocalArtists(navController: NavController) {
                     contentType = { _, _ -> "LocalArtists_item" }*/
                 ) { index, artist ->
                     ArtistItem(artistName = artist) {
-
+                        LibraryObject.setTargetArtistName(artist)
+                        navController.toUI(UI.ArtistInfo)
                     }
 
                     key(index) {
@@ -158,7 +164,7 @@ fun LocalArtists(navController: NavController) {
                             Spacer(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(start = 81.dp)
+                                    .padding(start = 85.dp)
                                     .alpha(0.15f)
                                     .height(0.5.dp)
                                     .background(Color.Black withNight Color.White)
@@ -173,7 +179,6 @@ fun LocalArtists(navController: NavController) {
 
 @Composable
 private fun LazyItemScope.ArtistItem(
-    modifier: Modifier = Modifier,
     artistName: String,
     onClick: () -> Unit
 ) =
@@ -181,61 +186,13 @@ private fun LazyItemScope.ArtistItem(
         modifier = Modifier
             .animateItem(fadeInSpec = null, fadeOutSpec = null)
             .fillMaxWidth()
-            .height(56.dp)
+            .height(68.dp)
             .clickable(onClick = onClick)
             .padding(start = 18.dp, end = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val songs = MusicLibrary.Artist[artistName]
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(48.dp)) {
-            YosWrapper {
-                val shape = CircleShape
-
-                    val density = LocalDensity.current
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(data = songs.getOrNull(0)?.thumb).crossfade(true)
-                            .error(R.drawable.songcredits_monogram_person)
-                            .placeholder(R.drawable.songcredits_monogram_person)
-                            .fallback(R.drawable.songcredits_monogram_person)
-                            .allowHardware(true)
-                            .precision(Precision.INEXACT)
-                            .size(128)
-                            .build(),
-                        contentDescription = "Artist_Image",
-                        contentScale = ContentScale.Crop,
-                        modifier = modifier
-                            .size(48.dp)
-                            .aspectRatio(1f)
-                            .graphicsLayer {
-                                compositingStrategy = CompositingStrategy.Offscreen
-                                clip = true
-                                this.shape = shape
-                            }
-                            .drawWithCache {
-                                onDrawWithContent {
-                                    drawContent()
-                                    val outline = shape.createOutline(
-                                        Size(size.width, size.height),
-                                        LayoutDirection.Ltr,
-                                        density
-                                    )
-                                    drawOutline(
-                                        outline = outline,
-                                        color = Color.DarkGray.copy(alpha = 0.08f),
-                                        style = Stroke(width = 6f)
-                                    )
-                                    drawOutline(
-                                        outline = outline,
-                                        color = Color.DarkGray.copy(alpha = 0.4f),
-                                        style = Stroke(width = 6f),
-                                        blendMode = BlendMode.Overlay
-                                    )
-                                }
-                            }
-                    )
-            }
-        }
+        ArtistAvatar(data = songs.firstNotNullOfOrNull { it.thumb }, size = 52.dp)
         Spacer(modifier = Modifier.width(15.dp))
         Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
             Text(
@@ -244,6 +201,17 @@ private fun LazyItemScope.ArtistItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 lineHeight = 20.sp
+            )
+            Text(
+                text = stringResource(
+                    id = R.string.page_library_artist_desc,
+                    songs.size,
+                    songs.distinctBy { it.album ?: defaultAlbum }.size
+                ),
+                fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.alpha(0.4f)
             )
         }
 

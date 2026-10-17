@@ -5,6 +5,7 @@ All notable changes to Pear are listed here, newest first.
 ## [Unreleased]
 
 ### Changes
+* Add an artist page with the artist's albums and songs and Play and Shuffle buttons, opened from the Artists list. The list is now alphabetical, with larger pictures and a song and album count under each name.
 * Add a landscape layout to Now Playing: the cover on the left, and on the right the song, the controls, the lyrics or the queue, switched with the buttons along the bottom.
 * Add a Recently Played row to Home with a page for the full list. Songs are added as they start playing, unless Listening History is turned off.
 * Redraw the Featured Picks cards on Home smaller, with the cover filling the card and its colours fading in under the song name.
